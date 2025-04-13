@@ -1,20 +1,49 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image ,FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
-import { Heart, Share2 } from 'lucide-react-native';
-import { Link } from 'expo-router';
+import { Package, ChevronRight } from 'lucide-react-native';
 
 const orders = [
   {
     id: '1',
     date: '2024-02-20',
     status: 'Delivered',
-    items: ['2x Tomatoes', '1kg Potatoes', '500g Onions'],
+    items: [
+      { name: 'Fresh Tomatoes', quantity: '2 kg' },
+      { name: 'Organic Potatoes', quantity: '1 kg' },
+      { name: 'Red Onions', quantity: '500g' }
+    ],
     total: '₹250',
+    deliveryTime: '6:00 AM - 7:00 AM',
+    trackingNumber: 'ORD123456789'
   },
-  
+  {
+    id: '2',
+    date: '2024-02-19',
+    status: 'Processing',
+    items: [
+      { name: 'Organic Chicken', quantity: '1 kg' },
+      { name: 'Fresh Spinach', quantity: '250g' }
+    ],
+    total: '₹450',
+    deliveryTime: '6:00 AM - 7:00 AM',
+    trackingNumber: 'ORD987654321'
+  }
 ];
 
-export default function FavoritesScreen() {
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'delivered':
+      return '#22c55e';
+    case 'processing':
+      return '#eab308';
+    case 'cancelled':
+      return '#ef4444';
+    default:
+      return '#64748b';
+  }
+};
+
+export default function OrdersScreen() {
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -27,187 +56,176 @@ export default function FavoritesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Your Orders</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Orders</Text>
+      </View>
+
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={styles.orderCard}>
+          <TouchableOpacity style={styles.orderCard}>
             <View style={styles.orderHeader}>
-              <Text style={styles.orderDate}>{item.date}</Text>
-              <Text style={[styles.orderStatus, { color: '#4CAF50' }]}>
-                {item.status}
-              </Text>
+              <View style={styles.orderInfo}>
+                <Text style={styles.orderDate}>{item.date}</Text>
+                <Text style={styles.trackingNumber}>{item.trackingNumber}</Text>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}15` }]}>
+                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+              </View>
             </View>
-            {item.items.map((itemName, index) => (
-              <Text key={index} style={styles.orderItem}>
-                {itemName}
-              </Text>
-            ))}
-            <Text style={styles.orderTotal}>Total: {item.total}</Text>
-          </View>
+
+            <View style={styles.itemsList}>
+              {item.items.map((orderItem, index) => (
+                <View key={index} style={styles.orderItem}>
+                  <Package size={16} color="#64748b" />
+                  <Text style={styles.itemText}>
+                    {orderItem.quantity} × {orderItem.name}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.orderFooter}>
+              <View>
+                <Text style={styles.deliveryLabel}>Delivery Time</Text>
+                <Text style={styles.deliveryTime}>{item.deliveryTime}</Text>
+              </View>
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalAmount}>{item.total}</Text>
+              </View>
+            </View>
+{/* 
+            <TouchableOpacity style={styles.trackButton}>
+              <Text style={styles.trackButtonText}>Track Order</Text>
+              <ChevronRight size={20} color="#22c55e" />
+            </TouchableOpacity> */}
+          </TouchableOpacity>
         )}
       />
     </View>
   );
 }
 
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#f8fafc',
-//   },
-//   header: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     paddingHorizontal: 20,
-//     paddingTop: 60,
-//     paddingBottom: 20,
-//     backgroundColor: '#ffffff',
-//   },
-//   title: {
-//     fontFamily: 'Poppins_600SemiBold',
-//     fontSize: 24,
-//     color: '#1e293b',
-//   },
-//   iconButton: {
-//     padding: 8,
-//     backgroundColor: '#f1f5f9',
-//     borderRadius: 12,
-//   },
-//   scrollView: {
-//     flex: 1,
-//   },
-//   grid: {
-//     padding: 20,
-//     flexDirection: 'row',
-//     flexWrap: 'wrap',
-//     justifyContent: 'space-between',
-//   },
-//   card: {
-//     width: '48%',
-//     backgroundColor: '#ffffff',
-//     borderRadius: 16,
-//     marginBottom: 16,
-//     overflow: 'hidden',
-//   },
-//   image: {
-//     width: '100%',
-//     height: 150,
-//   },
-//   favoriteButton: {
-//     position: 'absolute',
-//     top: 8,
-//     right: 8,
-//     backgroundColor: '#ffffff',
-//     borderRadius: 20,
-//     padding: 8,
-//     shadowColor: '#000',
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 2,
-//   },
-//   organicBadge: {
-//     position: 'absolute',
-//     top: 8,
-//     left: 8,
-//     backgroundColor: '#22c55e',
-//     paddingHorizontal: 8,
-//     paddingVertical: 4,
-//     borderRadius: 12,
-//   },
-//   organicText: {
-//     fontFamily: 'Poppins_500Medium',
-//     fontSize: 10,
-//     color: '#ffffff',
-//   },
-//   content: {
-//     padding: 12,
-//   },
-//   name: {
-//     fontFamily: 'Poppins_500Medium',
-//     fontSize: 14,
-//     color: '#1e293b',
-//     marginBottom: 4,
-//   },
-//   priceRow: {
-//     flexDirection: 'row',
-//     alignItems: 'baseline',
-//     marginBottom: 8,
-//   },
-//   price: {
-//     fontFamily: 'Poppins_600SemiBold',
-//     fontSize: 16,
-//     color: '#22c55e',
-//     marginRight: 4,
-//   },
-//   unit: {
-//     fontFamily: 'Poppins_400Regular',
-//     fontSize: 12,
-//     color: '#64748b',
-//   },
-//   rating: {
-//     backgroundColor: '#f1f5f9',
-//     paddingHorizontal: 8,
-//     paddingVertical: 4,
-//     borderRadius: 12,
-//     alignSelf: 'flex-start',
-//   },
-//   ratingText: {
-//     fontFamily: 'Poppins_400Regular',
-//     fontSize: 12,
-//     color: '#64748b',
-//   },
-// });
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    paddingTop: 48,
   },
   header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#ffffff',
+  },
+  title: {
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 24,
-    fontWeight: 'bold',
-    padding: 16,
+    color: '#1e293b',
+  },
+  listContent: {
+    padding: 20,
   },
   orderCard: {
-    backgroundColor: '#fff',
-    margin: 8,
-    padding: 16,
+    backgroundColor: '#ffffff',
     borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#e2e8f0',
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  orderInfo: {
+    flex: 1,
   },
   orderDate: {
+    fontFamily: 'Poppins_500Medium',
     fontSize: 16,
-    fontWeight: '500',
-    fontFamily: 'Poppins_500Medium',
+    color: '#1e293b',
+    marginBottom: 4,
   },
-  orderStatus: {
+  trackingNumber: {
+    fontFamily: 'Poppins_400Regular',
     fontSize: 14,
-    fontWeight: '600',
+    color: '#64748b',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusText: {
     fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+  },
+  itemsList: {
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#f1f5f9',
+    paddingVertical: 12,
+    gap: 8,
   },
   orderItem: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-    fontFamily: 'Poppins_500Medium',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  orderTotal: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 8,
-    color: '#333',
+  itemText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  orderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  deliveryLabel: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  deliveryTime: {
     fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  totalContainer: {
+    alignItems: 'flex-end',
+  },
+  totalLabel: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  totalAmount: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 18,
+    color: '#22c55e',
+  },
+  trackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  trackButtonText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+    color: '#22c55e',
+    marginRight: 4,
   },
 });

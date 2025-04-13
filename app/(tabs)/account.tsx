@@ -1,32 +1,43 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
-import { Bell, CreditCard, Heart, CircleHelp as HelpCircle, LogOut, MapPin, Settings, ShoppingBag, User } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from '@expo-google-fonts/poppins';
+import {
+  Bell,
+  CreditCard,
+  Heart,
+  CircleHelp as HelpCircle,
+  LogOut,
+  MapPin,
+  Settings,
+  ShoppingBag,
+  User,
+} from 'lucide-react-native';
+import { useAuthStore } from '../../store/authStore';
+import { router } from 'expo-router';
+import { ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
 
 const menuItems = [
-  {
-    id: 'orders',
-    title: 'My Orders',
-    icon: ShoppingBag,
-    color: '#8b5cf6',
-  },
-  {
-    id: 'addresses',
-    title: 'Delivery Addresses',
-    icon: MapPin,
-    color: '#ec4899',
-  },
-  {
-    id: 'payment',
-    title: 'Payment Methods',
-    icon: CreditCard,
-    color: '#f59e0b',
-  },
-  {
-    id: 'favorites',
-    title: 'My Favorites',
-    icon: Heart,
-    color: '#ef4444',
-  },
+ 
+  
+  // {
+  //   id: 'favorites',
+  //   title: 'My Favorites',
+  //   icon: Heart,
+  //   color: '#ef4444',
+  // },
   {
     id: 'notifications',
     title: 'Notifications',
@@ -48,15 +59,39 @@ const menuItems = [
 ];
 
 export default function AccountScreen() {
+
+  
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+
 
   if (!fontsLoaded) {
     return null;
   }
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  const handleMenuPress = (route?: string) => {
+    if (route) {
+      router.push(route);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -70,12 +105,15 @@ export default function AccountScreen() {
       <View style={styles.profile}>
         <View style={styles.profileHeader}>
           <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200' }}
+            source={{
+              uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200',
+            }}
             style={styles.profileImage}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Sarah Johnson</Text>
-            <Text style={styles.profileEmail}>sarah.j@example.com</Text>
+          <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+<Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
+
           </View>
         </View>
         <TouchableOpacity style={styles.editButton}>
@@ -83,7 +121,7 @@ export default function AccountScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.stats}>
+      {/* <View style={styles.stats}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>12</Text>
           <Text style={styles.statLabel}>Orders</Text>
@@ -96,12 +134,18 @@ export default function AccountScreen() {
           <Text style={styles.statValue}>8</Text>
           <Text style={styles.statLabel}>Completed</Text>
         </View>
-      </View>
+      </View> */}
 
       <View style={styles.menu}>
         {menuItems.map((item) => (
-          <TouchableOpacity key={item.id} style={styles.menuItem}>
-            <View style={[styles.menuIcon, { backgroundColor: `${item.color}20` }]}>
+          <TouchableOpacity
+            key={item.id}
+            style={styles.menuItem}
+            onPress={() => handleMenuPress(item.route)}
+          >
+            <View
+              style={[styles.menuIcon, { backgroundColor: `${item.color}20` }]}
+            >
               <item.icon size={20} color={item.color} />
             </View>
             <View style={styles.menuContent}>
@@ -111,9 +155,19 @@ export default function AccountScreen() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.logoutButton}>
-        <LogOut size={20} color="#ef4444" />
-        <Text style={styles.logoutText}>Log Out</Text>
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={handleLogout}
+        disabled={isLoggingOut}
+      >
+        {isLoggingOut ? (
+          <ActivityIndicator color="#ef4444" />
+        ) : (
+          <>
+            <LogOut size={20} color="#ef4444" />
+            <Text style={styles.logoutText}>Log Out</Text>
+          </>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );

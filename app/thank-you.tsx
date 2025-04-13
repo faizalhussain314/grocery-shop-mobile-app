@@ -1,6 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { Link } from 'expo-router';
+import ConfettiCannon from 'react-native-confetti-cannon';
+import LottieView from 'lottie-react-native';
+import { useRef } from 'react';
+
 
 export default function ThankYouScreen() {
   const [fontsLoaded] = useFonts({
@@ -9,23 +13,32 @@ export default function ThankYouScreen() {
     Poppins_600SemiBold,
   });
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const animationRef = useRef<LottieView>(null);
+
+  if (!fontsLoaded) return null;
 
   return (
     <View style={styles.container}>
-      <Image
-        source={{ uri: 'https://images.unsplash.com/photo-1576021182211-9ea8dced3690?q=80&w=800' }}
-        style={styles.image}
+      {/* Lottie animation */}
+      <LottieView
+        ref={animationRef}
+        source={{ uri: 'https://lottie.host/1b93183c-4955-46e5-a185-69295f03b236/VxAl9aszT7.lottie' }}
+        autoPlay
+        loop={false}
+        style={{ width: 200, height: 200, marginBottom: 32 }}
       />
+
+      {/* Confetti! */}
+      <ConfettiCannon count={100} origin={{ x: 200, y: 0 }} fadeOut />
+
       <Text style={styles.title}>Thank You!</Text>
       <Text style={styles.message}>
         Your order has been placed successfully. We'll deliver your fresh groceries right to your doorstep.
       </Text>
       <Text style={styles.orderNumber}>Order #12345</Text>
-      <Text style={styles.estimatedDelivery}>Estimated delivery: 6 AM</Text>
+      <Text style={styles.estimatedDelivery}>Estimated delivery: 6 AM - 8 AM</Text>
 
+      {/* Buttons */}
       <View style={styles.buttons}>
         <Link href="/(tabs)" asChild>
           <TouchableOpacity style={styles.homeButton}>
@@ -41,6 +54,7 @@ export default function ThankYouScreen() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

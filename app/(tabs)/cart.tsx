@@ -101,7 +101,7 @@ export default function CartScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Link href="/checkout" asChild>
+        <Link href="/thank-you" asChild>
           <TouchableOpacity style={styles.checkoutButton}>
             <Text style={styles.checkoutText}>Proceed to Checkout</Text>
           </TouchableOpacity>

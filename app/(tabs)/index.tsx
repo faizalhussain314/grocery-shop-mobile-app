@@ -3,34 +3,52 @@ import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } 
 import { MapPin, Bell, Search } from 'lucide-react-native';
 import { Link } from 'expo-router';
 
-const categories = [
-  { id: 1, name: 'Meats', icon: '🥩' },
-  { id: 2, name: 'Fresh', icon: '🥬' },
-  { id: 3, name: 'Bakery', icon: '🥖' },
-  { id: 4, name: 'Grains', icon: '🌾' },
-  { id: 5, name: 'Organic', icon: '🥗' },
+const subcategories = [
+  {
+    "id": 1,
+    "name": "potato",
+    "image": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "category": "Fresh",
+    "count": "50 items"
+  },
+  {
+    "id": 2,
+    "name": "Brinjal",
+    "image": "https://images.unsplash.com/photo-1613881553903-4543f5f2cac9?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "category": "Fresh",
+    "count": "60 items"
+  },
+  {
+    "id": 3,
+    "name": "Bitter Gourd",
+    "image": "https://images.unsplash.com/photo-1588391453522-a8b470845269?q=80&w=2126&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "category": "Fresh",
+    "count": "40 items"
+  },
+  {
+    "id": 4,
+    "name": "tomato",
+    "image": "https://images.unsplash.com/photo-1561136594-7f68413baa99?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "category": "Fresh",
+    "count": "30 items"
+  },
+  {
+    "id": 5,
+    "name": "Pumpkin",
+    "image": "https://images.unsplash.com/photo-1695590683093-a1aada150ed9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "category": "Fresh",
+    "count": "25 items"
+  },
+  {
+    "id": 6,
+    "name": "Broad Beans",
+    "image": "https://images.unsplash.com/photo-1609820323628-621956856049?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "category": "Fresh",
+    "count": "40 items"
+  },
 ];
 
-const popularItems = [
-  {
-    id: 1,
-    name: 'Farm Fresh Produce',
-    image: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?q=80&w=800',
-    price: 10.00,
-    rating: 3.5,
-    deliveryTime: '10 min',
-    discount: '5%'
-  },
-  {
-    id: 2,
-    name: 'Tender Fresh Meats',
-    image: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?q=80&w=800',
-    price: 15.00,
-    rating: 4.2,
-    deliveryTime: '15 min',
-    discount: '10%'
-  },
-];
+
 
 export default function HomeScreen() {
   const [fontsLoaded] = useFonts({
@@ -49,9 +67,7 @@ export default function HomeScreen() {
         <View style={styles.locationContainer}>
           <MapPin size={20} color="#64748b" />
           <Text style={styles.locationText}>GK apparments</Text>
-        
         </View>
-       
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.iconButton}>
             <Search size={20} color="#64748b" />
@@ -66,43 +82,25 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.deliveryOption}>
           <Text style={styles.deliveryOptionText}>6 AM delivery</Text>
         </TouchableOpacity>
-        {/* <TouchableOpacity style={[styles.deliveryOption, styles.deliveryOptionInactive]}>
-          <Text style={styles.deliveryOptionTextInactive}>Pickup</Text>
-        </TouchableOpacity> */}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
-        {categories.map((category) => (
-          <TouchableOpacity key={category.id} style={styles.categoryItem}>
-            <Text style={styles.categoryIcon}>{category.icon}</Text>
-            <Text style={styles.categoryName}>{category.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.welcomeSection}>
+        <Text style={styles.welcomeTitle}>Fresh & Healthy</Text>
+        <Text style={styles.welcomeSubtitle}>Discover fresh items for your daily needs</Text>
+      </View>
 
-      <View style={styles.popularSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Popular Items</Text>
-          <Link href="/shop" style={styles.seeAllLink}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </Link>
-        </View>
-
-        {popularItems.map((item) => (
-          <Link key={item.id} href={`/product/${item.id}`} asChild>
-            <TouchableOpacity style={styles.productCard}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <View style={styles.productDetails}>
-                  <Text style={styles.productPrice}>₹{item.price.toFixed(2)}</Text>
-                  <View style={styles.ratingContainer}>
-                    <Text style={styles.rating}>⭐ {item.rating}</Text>
-                  </View>
+      <View style={styles.subcategoriesGrid}>
+        {subcategories.map((subcat) => (
+          <Link key={subcat.id} href={`/category/${subcat.id}`} asChild>
+            <TouchableOpacity style={styles.subcategoryCard}>
+              <Image source={{ uri: subcat.image }} style={styles.subcategoryImage} />
+              <View style={styles.subcategoryOverlay}>
+                <View style={styles.subcategoryContent}>
+                  <Text style={styles.subcategoryName}>{subcat.name}</Text>
+                  <Text style={styles.subcategoryCount}>{subcat.count}</Text>
                 </View>
-                <View style={styles.deliveryInfo}>
-                  <Text style={styles.deliveryTime}>🕒 {item.deliveryTime}</Text>
-                  <Text style={styles.discount}>🏷️ {item.discount} off</Text>
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>{subcat.category}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -137,12 +135,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1e293b',
   },
-  locationAddress:{
-    marginLeft: 8,
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 8,
-    color: '#1e293b',
-  },
   headerIcons: {
     flexDirection: 'row',
     gap: 16,
@@ -163,104 +155,72 @@ const styles = StyleSheet.create({
     backgroundColor: '#22c55e',
     borderRadius: 20,
   },
-  deliveryOptionInactive: {
-    backgroundColor: '#f1f5f9',
-  },
   deliveryOptionText: {
     color: '#ffffff',
     fontFamily: 'Poppins_500Medium',
   },
-  deliveryOptionTextInactive: {
-    color: '#64748b',
-    fontFamily: 'Poppins_500Medium',
-  },
-  categoriesContainer: {
-    paddingLeft: 20,
-    marginBottom: 24,
-  },
-  categoryItem: {
-    alignItems: 'center',
-    marginRight: 24,
-  },
-  categoryIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  categoryName: {
-    fontFamily: 'Poppins_400Regular',
-    color: '#64748b',
-  },
-  popularSection: {
+  welcomeSection: {
     padding: 20,
+    paddingTop: 0,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
+  welcomeTitle: {
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 18,
+    fontSize: 24,
     color: '#1e293b',
+    marginBottom: 4,
   },
-  seeAllLink: {
-    padding: 8,
-  },
-  seeAllText: {
-    color: '#22c55e',
-    fontFamily: 'Poppins_500Medium',
-  },
-  productCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  productImage: {
-    width: '100%',
-    height: 200,
-  },
-  productInfo: {
-    padding: 16,
-  },
-  productName: {
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 16,
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  productDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  productPrice: {
-    fontFamily: 'Poppins_600SemiBold',
-    fontSize: 18,
-    color: '#22c55e',
-  },
-  ratingContainer: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  rating: {
+  welcomeSubtitle: {
     fontFamily: 'Poppins_400Regular',
+    fontSize: 16,
     color: '#64748b',
   },
-  deliveryInfo: {
-    flexDirection: 'row',
+  subcategoriesGrid: {
+    padding: 20,
     gap: 16,
   },
-  deliveryTime: {
-    fontFamily: 'Poppins_400Regular',
-    color: '#64748b',
+  subcategoryCard: {
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
   },
-  discount: {
+  subcategoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  subcategoryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  subcategoryContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  subcategoryName: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 20,
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  subcategoryCount: {
     fontFamily: 'Poppins_400Regular',
-    color: '#22c55e',
+    fontSize: 14,
+    color: '#f1f5f9',
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  categoryBadgeText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 12,
+    color: '#1e293b',
   },
 });
