@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { Minus, Plus, Share2, Trash2 } from 'lucide-react-native';
 import { Link } from 'expo-router';
+import { useState } from 'react';
 
 const cartItems = [
   {
@@ -23,6 +24,9 @@ const cartItems = [
 ];
 
 export default function CartScreen() {
+  const [items, setItems] = useState(cartItems);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -33,7 +37,25 @@ export default function CartScreen() {
     return null;
   }
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const handleQuantityChange = (id: number, change: number) => {
+    setItems(currentItems =>
+      currentItems.map(item =>
+        item.id === id
+          ? { ...item, quantity: Math.max(1, Math.min(10, item.quantity + change)) }
+          : item
+      )
+    );
+  };
+
+  const handleRemoveItem = (id: number) => {
+    setItems(currentItems => currentItems.filter(item => item.id !== id));
+  };
+
+  const filteredItems = items.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const subtotal = filteredItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryFee = 2.00;
   const discount = subtotal * 0.05; // 5% discount
   const total = subtotal + deliveryFee - discount;
@@ -48,14 +70,24 @@ export default function CartScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search items..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#94a3b8"
+          />
+        </View>
+
         <View style={styles.cartItems}>
-          {cartItems.map((item) => (
+          {filteredItems.map((item) => (
             <View key={item.id} style={styles.cartItem}>
               <Image source={{ uri: item.image }} style={styles.itemImage} />
               <View style={styles.itemDetails}>
                 <View style={styles.itemHeader}>
                   <Text style={styles.itemName}>{item.name}</Text>
-                  <TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleRemoveItem(item.id)}>
                     <Trash2 size={20} color="#ef4444" />
                   </TouchableOpacity>
                 </View>
@@ -65,12 +97,20 @@ export default function CartScreen() {
                 <View style={styles.priceQuantity}>
                   <Text style={styles.itemPrice}>₹{(item.price * item.quantity).toFixed(2)}</Text>
                   <View style={styles.quantityControls}>
-                    <TouchableOpacity style={styles.quantityButton}>
-                      <Minus size={16} color="#64748b" />
+                    <TouchableOpacity 
+                      style={[styles.quantityButton, item.quantity <= 1 && styles.quantityButtonDisabled]}
+                      onPress={() => handleQuantityChange(item.id, -1)}
+                      disabled={item.quantity <= 1}
+                    >
+                      <Minus size={16} color={item.quantity <= 1 ? "#94a3b8" : "#64748b"} />
                     </TouchableOpacity>
                     <Text style={styles.quantity}>{item.quantity}</Text>
-                    <TouchableOpacity style={styles.quantityButton}>
-                      <Plus size={16} color="#64748b" />
+                    <TouchableOpacity 
+                      style={[styles.quantityButton, item.quantity >= 10 && styles.quantityButtonDisabled]}
+                      onPress={() => handleQuantityChange(item.id, 1)}
+                      disabled={item.quantity >= 10}
+                    >
+                      <Plus size={16} color={item.quantity >= 10 ? "#94a3b8" : "#64748b"} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -101,7 +141,7 @@ export default function CartScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Link href="/thank-you" asChild>
+        <Link href="/checkout" asChild>
           <TouchableOpacity style={styles.checkoutButton}>
             <Text style={styles.checkoutText}>Proceed to Checkout</Text>
           </TouchableOpacity>
@@ -136,6 +176,19 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: 8,
     backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+  },
+  searchContainer: {
+    padding: 20,
+    paddingTop: 0,
+    backgroundColor: '#ffffff',
+  },
+  searchInput: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 16,
+    color: '#1e293b',
+    backgroundColor: '#f1f5f9',
+    padding: 12,
     borderRadius: 12,
   },
   cartItems: {
@@ -194,12 +247,24 @@ const styles = StyleSheet.create({
   },
   quantityButton: {
     padding: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  quantityButtonDisabled: {
+    backgroundColor: '#f1f5f9',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   quantity: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 16,
     color: '#1e293b',
-    marginHorizontal: 12,
+    marginHorizontal: 16,
   },
   summary: {
     backgroundColor: '#ffffff',
