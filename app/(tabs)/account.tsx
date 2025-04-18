@@ -4,7 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import {
   useFonts,
@@ -14,30 +14,16 @@ import {
 } from '@expo-google-fonts/poppins';
 import {
   Bell,
-  CreditCard,
-  Heart,
-  CircleHelp as HelpCircle,
+  HelpCircle,
   LogOut,
-  MapPin,
   Settings,
-  ShoppingBag,
-  User,
 } from 'lucide-react-native';
 import { useAuthStore } from '../../store/authStore';
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
-import { useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/axios';
 
 const menuItems = [
- 
-  
-  // {
-  //   id: 'favorites',
-  //   title: 'My Favorites',
-  //   icon: Heart,
-  //   color: '#ef4444',
-  // },
   {
     id: 'notifications',
     title: 'Notifications',
@@ -59,8 +45,6 @@ const menuItems = [
 ];
 
 export default function AccountScreen() {
-
-  
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -69,11 +53,23 @@ export default function AccountScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
+  const [profile, setProfile] = useState<{
+    phoneNumber: string;
+    role: string;
+    isActive: boolean;
+  } | null>(null);
 
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/auth/profile');
+        setProfile(response.data);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -93,6 +89,12 @@ export default function AccountScreen() {
     }
   };
 
+  if (!fontsLoaded) return null;
+
+  const initials = profile
+    ? `${profile.role[0].toUpperCase()}${profile.phoneNumber.slice(-2)}`
+    : 'U';
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -104,37 +106,22 @@ export default function AccountScreen() {
 
       <View style={styles.profile}>
         <View style={styles.profileHeader}>
-          <Image
-            source={{
-              uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200',
-            }}
-            style={styles.profileImage}
-          />
+          <View style={styles.initialsCircle}>
+            <Text style={styles.initialsText}>{initials}</Text>
+          </View>
           <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{user?.name || 'User'}</Text>
-<Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
-
+            <Text style={styles.profileName}>
+              {profile?.role?.toUpperCase() || 'Customer'}
+            </Text>
+            <Text style={styles.profileEmail}>
+              {profile?.phoneNumber || 'Phone not available'}
+            </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.editButton}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
-
-      {/* <View style={styles.stats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>12</Text>
-          <Text style={styles.statLabel}>Orders</Text>
-        </View>
-        <View style={[styles.statItem, styles.statBorder]}>
-          <Text style={styles.statValue}>4</Text>
-          <Text style={styles.statLabel}>Pending</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>8</Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </View>
-      </View> */}
 
       <View style={styles.menu}>
         {menuItems.map((item) => (
@@ -209,11 +196,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  profileImage: {
+  initialsCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
+    backgroundColor: '#e2e8f0',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
+  },
+  initialsText: {
+    fontSize: 24,
+    color: '#1e293b',
+    fontFamily: 'Poppins_600SemiBold',
   },
   profileInfo: {
     flex: 1,
@@ -240,34 +235,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
     color: '#1e293b',
-  },
-  stats: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    marginTop: 20,
-    marginHorizontal: 20,
-    padding: 20,
-    borderRadius: 16,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statBorder: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  statValue: {
-    fontFamily: 'Poppins_600SemiBold',
-    fontSize: 24,
-    color: '#22c55e',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    color: '#64748b',
   },
   menu: {
     backgroundColor: '#ffffff',
