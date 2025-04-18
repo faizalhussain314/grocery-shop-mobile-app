@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
-const baseURL = Constants.expoConfig?.extra?.apiBaseUrl || 'https://testdata-x7qx.onrender.com/v1';
+const baseURL = Constants.expoConfig?.extra?.apiBaseUrl || 'http://69.62.84.189:1234/V1';
 
 export const api = axios.create({
   baseURL,
@@ -15,6 +15,10 @@ api.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log("token",token);
+  }
+  else{
+    console.log("token wasn't avaiable");
   }
   
   return config;

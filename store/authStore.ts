@@ -7,7 +7,7 @@ interface AuthState {
   token: string | null;
   user: any | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (phoneNumber: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -41,30 +41,40 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   user: null,
   isLoading: true,
+  
   login: async (phoneNumber, password) => {
+    set({ isLoading: true }); // Set loading state to true
     try {
       const response = await api.post('/auth/login', { phoneNumber, password });
       const { token, user } = response.data;
   
       await storage.setItem('token', token);
       await storage.setItem('user', JSON.stringify(user)); // Store user as string
+      console.log("user:",user);
   
-      set({ token, user });
+      set({ token, user, isLoading: false }); // Set state after successful login
     } catch (error) {
-      throw error;
+      set({ isLoading: false });
+      throw error; // Optionally, handle error in UI
     }
   },
   
   register: async (email, password, name) => {
+    set({ isLoading: true }); // Set loading state to true
     try {
       const response = await api.post('/auth/register', { email, password, name });
       const { token, user } = response.data;
+  
       await storage.setItem('token', token);
-      set({ token, user });
+      await storage.setItem('user', JSON.stringify(user)); // Store user as string
+  
+      set({ token, user, isLoading: false }); // Set state after successful registration
     } catch (error) {
-      throw error;
+      set({ isLoading: false });
+      throw error; // Optionally, handle error in UI
     }
   },
+  
   logout: async () => {
     try {
       await api.post('/auth/logout'); // optional, depending on backend
@@ -84,7 +94,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user = userStr ? JSON.parse(userStr) : null;
   
       if (token && user) {
-        set({ token, user, isLoading: false });
+        // Optionally, you can validate token here with an API call
+        const response = await api.post('/auth/validate-token', { token });
+        if (response.data.valid) {
+          set({ token, user, isLoading: false });
+        } else {
+          await storage.removeItem('token');
+          await storage.removeItem('user');
+          set({ token: null, user: null, isLoading: false });
+        }
       } else {
         set({ isLoading: false });
       }
@@ -94,3 +112,5 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 }));
+
+

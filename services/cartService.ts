@@ -1,21 +1,38 @@
 import { api } from "@/lib/axios";
 import * as SecureStore from 'expo-secure-store';
-import Constants from 'expo-constants';
 
+export interface CartItem {
+  id: string;
+  productId: string;
+  quantity: number;
+  product: {
+    name: string;
+    price: number;
+    image: string;
+    unit: string;
+  };
+}
+
+// Get cart items
+export const getCartItems = async () => {
+  try {
+    const response = await api.get('/customer/cart');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching cart items:', error.response?.data || error.message);
+    throw new Error('Failed to fetch cart items');
+  }
+};
 
 // Add an item to the cart
 export const addToCart = async (productId: string, quantity: string) => {
   try {
-    const token = await SecureStore.getItemAsync('token');
-    console.log('Auth Token:', token);
-    
+  
 
     const payload = {
       productId,
-      quantity: parseFloat(quantity), // Send number, if backend expects number
+      quantity: parseInt(quantity),
     };
-    console.log("Payload being sent to cart:", payload);
-
     const response = await api.post('/customer/cart', payload);
     return response.data;
   } catch (error: any) {
@@ -24,3 +41,21 @@ export const addToCart = async (productId: string, quantity: string) => {
   }
 };
 
+// Create order
+export const createOrder = async (items: Array<{ productId: string; quantity: number }>, totalPrice: number) => {
+  try {
+    const payload = {
+      items: items.map(item => ({
+        productId: item.productId,  // Extract the productId directly
+        quantity: item.quantity      // Quantity as is
+      })),
+     
+    };
+    
+    const response = await api.post('/customer/orders', payload);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error creating order:', error.response?.data || error.message);
+    throw new Error('Failed to create order');
+  }
+};

@@ -1,40 +1,15 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from 'react';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
-import { Package, ChevronRight } from 'lucide-react-native';
-
-const orders = [
-  {
-    id: '1',
-    date: '2024-02-20',
-    status: 'Delivered',
-    items: [
-      { name: 'Fresh Tomatoes', quantity: '2 kg' },
-      { name: 'Organic Potatoes', quantity: '1 kg' },
-      { name: 'Red Onions', quantity: '500g' }
-    ],
-    total: '₹250',
-    deliveryTime: '6:00 AM - 7:00 AM',
-    trackingNumber: 'ORD123456789'
-  },
-  {
-    id: '2',
-    date: '2024-02-19',
-    status: 'Processing',
-    items: [
-      { name: 'Organic Chicken', quantity: '1 kg' },
-      { name: 'Fresh Spinach', quantity: '250g' }
-    ],
-    total: '₹450',
-    deliveryTime: '6:00 AM - 7:00 AM',
-    trackingNumber: 'ORD987654321'
-  }
-];
+import { Package } from 'lucide-react-native';
+import { getOrders, Order } from '@/services/orderService';
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case 'delivered':
       return '#22c55e';
     case 'processing':
+    case 'placed':
       return '#eab308';
     case 'cancelled':
       return '#ef4444';
@@ -50,9 +25,21 @@ export default function OrdersScreen() {
     Poppins_600SemiBold,
   });
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const data = await getOrders();
+        setOrders(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  if (!fontsLoaded) return null;
 
   return (
     <View style={styles.container}>
@@ -62,14 +49,14 @@ export default function OrdersScreen() {
 
       <FlatList
         data={orders}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.orderCard}>
             <View style={styles.orderHeader}>
               <View style={styles.orderInfo}>
-                <Text style={styles.orderDate}>{item.date}</Text>
-                <Text style={styles.trackingNumber}>{item.trackingNumber}</Text>
+                <Text style={styles.orderDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                <Text style={styles.trackingNumber}>{item.orderId}</Text>
               </View>
               <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}15` }]}>
                 <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
@@ -81,7 +68,7 @@ export default function OrdersScreen() {
                 <View key={index} style={styles.orderItem}>
                   <Package size={16} color="#64748b" />
                   <Text style={styles.itemText}>
-                    {orderItem.quantity} × {orderItem.name}
+                    {orderItem.quantity} × {orderItem.productId.name}
                   </Text>
                 </View>
               ))}
@@ -90,24 +77,20 @@ export default function OrdersScreen() {
             <View style={styles.orderFooter}>
               <View>
                 <Text style={styles.deliveryLabel}>Delivery Time</Text>
-                <Text style={styles.deliveryTime}>{item.deliveryTime}</Text>
+                <Text style={styles.deliveryTime}>6:00 AM - 7:00 AM</Text>
               </View>
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalAmount}>{item.total}</Text>
+                <Text style={styles.totalAmount}>₹{item.totalPrice}</Text>
               </View>
             </View>
-{/* 
-            <TouchableOpacity style={styles.trackButton}>
-              <Text style={styles.trackButtonText}>Track Order</Text>
-              <ChevronRight size={20} color="#22c55e" />
-            </TouchableOpacity> */}
           </TouchableOpacity>
         )}
       />
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

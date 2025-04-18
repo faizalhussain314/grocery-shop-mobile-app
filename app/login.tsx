@@ -17,6 +17,7 @@ import { Link, router } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import Toast from 'react-native-toast-message';
 import { ActivityIndicator } from 'react-native';
+import * as SecureStore from 'expo-secure-store'; 
 
 export default function LoginScreen() {
   const [phoneNumber, setMobileNumber] = useState('');
@@ -37,36 +38,51 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     setIsLoading(true);
-
+  
     Toast.show({
       type: 'info',
       text1: 'Logging in...',
     });
-
+  
     try {
       await login(phoneNumber, password);
-
+  
+      // Assuming the 'login' function stores the customer ID or token in SecureStore
+      const customerId = await SecureStore.getItemAsync('customerId');
+      if (customerId) {
+        console.log("Customer ID: from login page", customerId);
+      }
+  
       Toast.hide();
       Toast.show({
         type: 'success',
         text1: 'Login Successful',
         text2: 'Welcome back 👋',
       });
-
+  
+      // Replace the route with the correct path to the tabs screen
       router.replace('/(tabs)');
     } catch (err) {
       Toast.hide();
-      setError('Invalid credentials');
-
+  
+      // Log the error for debugging
+      console.error("Login error:", err);
+  
+      // If the error contains a message, show it in the toast
+      const errorMessage = err instanceof Error ? err.message : 'Invalid credentials';
+  
+      setError(errorMessage);  // If you have a setError method for managing error state
+  
       Toast.show({
         type: 'error',
         text1: 'Login Failed',
-        text2: 'Please check your mobile number or password',
+        text2: errorMessage,
       });
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <View style={styles.container}>
