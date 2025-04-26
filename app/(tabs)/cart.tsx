@@ -251,7 +251,7 @@ export default function CartScreen() {
           </View>
         )}
       </ScrollView>
-
+      {filteredItems.length > 0 && (
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.checkoutButton, isLoading && styles.checkoutButtonDisabled]}
@@ -263,6 +263,7 @@ export default function CartScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+      )}
     </View>
   );
 }

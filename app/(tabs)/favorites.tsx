@@ -1,6 +1,17 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { useEffect, useState } from 'react';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from '@expo-google-fonts/poppins';
 import { Package } from 'lucide-react-native';
 import { getOrders, Order } from '@/services/orderService';
 
@@ -55,11 +66,25 @@ export default function OrdersScreen() {
           <TouchableOpacity style={styles.orderCard}>
             <View style={styles.orderHeader}>
               <View style={styles.orderInfo}>
-                <Text style={styles.orderDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                <Text style={styles.orderDate}>
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </Text>
                 <Text style={styles.trackingNumber}>{item.orderId}</Text>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}15` }]}>
-                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: `${getStatusColor(item.status)}15` },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    { color: getStatusColor(item.status) },
+                  ]}
+                >
+                  {item.status}
+                </Text>
               </View>
             </View>
 
@@ -68,7 +93,8 @@ export default function OrdersScreen() {
                 <View key={index} style={styles.orderItem}>
                   <Package size={16} color="#64748b" />
                   <Text style={styles.itemText}>
-                    {orderItem.quantity} × {orderItem.productId.name}
+                    {orderItem.quantity} ×{' '}
+                    {orderItem.productId?.name ?? 'Unknown Product'}
                   </Text>
                 </View>
               ))}
@@ -90,7 +116,6 @@ export default function OrdersScreen() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

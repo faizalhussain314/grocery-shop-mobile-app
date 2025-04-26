@@ -24,6 +24,7 @@ import { useDispatch } from 'react-redux';
 import { addItemToCartThunk } from '@/thunks/cartActions';
 import Toast from 'react-native-toast-message';
 import { ActivityIndicator } from 'react-native';
+import { useAppDispatch } from '@/lib/hook';
 
 export default function ProductScreen() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -33,6 +34,7 @@ export default function ProductScreen() {
   const [cartAdded, setCartAdded] = useState(false);
   const router = useRouter();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const dispatch = useAppDispatch();
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -41,7 +43,7 @@ export default function ProductScreen() {
   });
   const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? '';
 
-  const dispatch = useDispatch();
+ 
 
   const handleShare = useCallback(async () => {
     if (!product) return;
@@ -90,7 +92,7 @@ export default function ProductScreen() {
   };
 
   const handleQuickQuantity = (amount: number) => {
-    setQuantity(amount);
+    setQuantity(prev => prev + amount);
   };
 
   useEffect(() => {
