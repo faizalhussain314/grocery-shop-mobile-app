@@ -48,6 +48,22 @@ interface CartItemWithDisplay extends CartItem {
     is500gSelected: boolean; 
 }
 
+interface OrderResponse {
+  customer: string;
+  items: Array<{
+      productId: string;
+      quantity: number;
+      _id: string;
+  }>;
+  totalPrice: number;
+  status: string;
+  _id: string;
+  createdAt: string;
+  updatedAt: string;
+  orderId: string; // The order number we need
+  __v: number;
+}
+
 export default function CartScreen() {
     const [items, setItems] = useState<CartItemWithDisplay[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -282,7 +298,7 @@ export default function CartScreen() {
 
             // Call the createOrder function
             console.log("order items", orderItems);
-            await createOrder(orderItems, totalPrice); 
+            const orderResponse: OrderResponse = await createOrder(orderItems, totalPrice);
             console.log('Order created successfully');
 
             // Show success toast message
@@ -294,7 +310,7 @@ export default function CartScreen() {
 
             // Clear cart locally and navigate
             setItems([]); // Clear local cart state after successful order
-            router.push('/thank-you');
+            router.push({ pathname: '/thank-you', params: { orderId: orderResponse.orderId } });
             console.log('Navigated to thank you page');
 
         } catch (error: unknown) {
