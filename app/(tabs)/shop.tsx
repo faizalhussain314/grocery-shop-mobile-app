@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import {
   useFonts,
@@ -18,8 +19,8 @@ import { Category, getCategories } from "@/services/categroyService";
 import { Product, getProducts } from "@/services/productService";
 import Constants from "expo-constants";
 import { Link } from "expo-router";
-import { ActivityIndicator } from 'react-native';
-import ProductCard from "../components/ProductCard";
+import ProductCard from "../components/ProductCard"; 
+import GlobalSearchOverlay from "../components/GlobalSearchOverlay"; 
 
 export default function ProductsScreen() {
   const [fontsLoaded] = useFonts({
@@ -32,6 +33,9 @@ export default function ProductsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? "";
   const [isLoading, setIsLoading] = useState(true);
+ 
+  const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,6 +44,7 @@ export default function ProductsScreen() {
           getCategories(),
           getProducts(),
         ]);
+
         setCategories(categoryData);
         setProducts(productData);
       } catch (error) {
@@ -48,14 +53,25 @@ export default function ProductsScreen() {
         setIsLoading(false);
       }
     };
-  
+
     fetchData();
   }, []);
+
+
+  const openSearchOverlay = () => {
+    setIsSearchOverlayVisible(true);
+  };
+
+ 
+  const closeSearchOverlay = () => {
+    setIsSearchOverlayVisible(false);
+  };
+
 
   if (!fontsLoaded || isLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color="#4CAF50" />
         <Text style={styles.loadingText}>Loading products...</Text>
       </View>
     );
@@ -66,7 +82,11 @@ export default function ProductsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Shop</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconButton}>
+         
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={openSearchOverlay} 
+          >
             <Search size={20} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
@@ -83,10 +103,11 @@ export default function ProductsScreen() {
           style={styles.categoriesContainer}
         >
           <View style={{ flexDirection: "row" }}>
-            {categories.map((category) => (
-              <TouchableOpacity key={category.id} style={styles.categoryCard}>
+            {categories.map((category , index) => (
+             
+              <TouchableOpacity key={index} style={styles.categoryCard}>
                 <Image
-                  source={{ uri: `${BASE_URL}${category.image}` }}
+                  source={{ uri: `${category.image}` }}
                   style={styles.categoryImage}
                 />
                 <View style={styles.categoryInfo}>
@@ -105,26 +126,32 @@ export default function ProductsScreen() {
         <Text style={styles.sectionTitle}>All Products</Text>
         <View style={styles.productsGrid}>
           {Array.isArray(products) && products.length > 0 ? (
-            products.map((product) => (
-            
+            products.map((product , index) => (
               <ProductCard
-                key={product.id}
+                key={index} 
                 product={product}
                 baseUrl={BASE_URL}
               />
-             
             ))
           ) : (
-            <Text style={{ padding: 20, color: "#94a3b8" }}>No products found.</Text>
+            <Text style={{ padding: 20, color: "#94a3b8" }}>No products found.  </Text>
           )}
         </View>
       </View>
+
+     
+      <GlobalSearchOverlay
+        isVisible={isSearchOverlayVisible}
+        onClose={closeSearchOverlay} 
+      />
+
     </ScrollView>
   );
 }
 
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: "#F1F8E9" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -145,7 +172,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 18,
-    color: "#1e293b",
+    color: "#212121",
     paddingHorizontal: 20,
     marginBottom: 16,
   },
@@ -162,12 +189,12 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  categoryImage: { width: "100%", height: 100 },
+  categoryImage: { width: "100%", height: 100, resizeMode: 'cover' },
   categoryInfo: { padding: 12 },
   categoryName: {
     fontFamily: "Poppins_500Medium",
     fontSize: 14,
-    color: "#1e293b",
+    color: "#1e293b", 
     marginBottom: 4,
   },
   categoryItems: {
@@ -186,12 +213,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f8fafc', // Match container background
   },
   loadingText: {
     marginTop: 12,
     fontFamily: 'Poppins_400Regular',
     fontSize: 16,
-    color: '#94a3b8',
+    color: '#94a3b8', 
   },
 });

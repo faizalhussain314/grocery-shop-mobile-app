@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   weightText: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 12,
-    color: '#64748b',
+    color: '#689F38',
   },
   selectedText: {
     color: '#ffffff',

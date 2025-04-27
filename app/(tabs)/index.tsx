@@ -1,11 +1,28 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  ActivityIndicator 
+} from 'react-native';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from '@expo-google-fonts/poppins';
 import { MapPin, Bell, Search, Star, TrendingUp } from 'lucide-react-native';
 import { Link } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
 import { BestSelling, getBestSelling } from '@/services/bestSellingService';
 import Animated, { useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import Constants from "expo-constants";
+
+import GlobalSearchOverlay from "../components/GlobalSearchOverlay"; 
+
 
 const { width } = Dimensions.get('window');
 const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? "";
@@ -42,6 +59,10 @@ export default function HomeScreen() {
   const [bestSelling, setBestSelling] = useState<BestSelling[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
 
+
+  const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
+
+
   useEffect(() => {
     const interval = setInterval(() => {
       const nextSlide = (currentSlide + 1) % slides.length;
@@ -63,6 +84,17 @@ export default function HomeScreen() {
     loadBestSelling();
   }, []);
 
+ 
+  const openSearchOverlay = () => {
+    setIsSearchOverlayVisible(true);
+  };
+
+
+  const closeSearchOverlay = () => {
+    setIsSearchOverlayVisible(false);
+  };
+
+
   if (!fontsLoaded) {
     return null;
   }
@@ -75,7 +107,11 @@ export default function HomeScreen() {
           <Text style={styles.locationText}>GK apparments</Text>
         </View>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconButton}>
+         
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={openSearchOverlay}
+          >
             <Search size={20} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
@@ -84,7 +120,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Hero Slider */}
+      {/* Hero Slider - ORIGINAL CODE */}
       <View style={styles.sliderContainer}>
         <ScrollView
           ref={scrollViewRef}
@@ -99,7 +135,7 @@ export default function HomeScreen() {
           }}
         >
           {slides.map((slide, index) => (
-            <View key={slide.id} style={styles.slide}>
+            <View key={index} style={styles.slide}>
               <Image source={{ uri: slide.image }} style={styles.slideImage} />
               <View style={styles.slideContent}>
                 <Text style={styles.slideTitle}>{slide.title}</Text>
@@ -121,7 +157,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Best Selling Section */}
+      {/* Best Selling Section - ORIGINAL CODE */}
       <View style={styles.bestSellingSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
@@ -135,50 +171,56 @@ export default function HomeScreen() {
 
         <ScrollView
           
-          // showsHorizontalScrollIndicator={false}
-          // contentContainerStyle={styles.bestSellingList}
-        >
-           <View style={styles.productsGrid}>
-                 {Array.isArray(bestSelling) && bestSelling.length > 0 ? (
-           bestSelling.map((product) => (
+         >
+           <View style={styles.productsGrid}> 
+               {Array.isArray(bestSelling) && bestSelling.length > 0 ? (
+           bestSelling.map((product) => ( 
              <Link key={product.id} href={`/product/${product.id}`} asChild>
-               <TouchableOpacity style={styles.productCard}>
-                 <Image source={{ uri: `${BASE_URL}${product.image}` }} style={styles.productImage} />
-                 {/* {product.organic && ( */}
-                   <View style={styles.organicBadge}>
-                     <Text style={styles.organicText}>Organic</Text>
-                   </View>
-                {/* //  )} */}
-                 <View style={styles.productInfo}>
-                   <Text style={styles.productName}>{product.name}</Text>
-                   <View style={styles.productDetails}>
-                     <Text style={styles.productPrice}>
-                       ₹{product.price.toFixed(2)}
-                     </Text>
-                     <Text style={styles.productUnit}>/ {product.unit}</Text>
-                   </View>
-                   <View style={styles.ratingContainer}>
-                     <Text style={styles.rating}>⭐ {product?.rating}</Text>
-                   </View>
-                 </View>
-               </TouchableOpacity>
+                <TouchableOpacity style={styles.productCard}>
+                    <Image source={{ uri: `${BASE_URL}${product.image}` }} style={styles.productImage} />
+                   
+                      <View style={styles.organicBadge}>
+                        <Text style={styles.organicText}>Organic</Text>
+                      </View>
+                   
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productName}>{product.name}</Text>
+                      <View style={styles.productDetails}>
+                        <Text style={styles.productPrice}>
+                           ₹{product.price.toFixed(2)}
+                        </Text>
+                        <Text style={styles.productUnit}>/ {product.unit}</Text>
+                      </View>
+                      <View style={styles.ratingContainer}>
+                        
+                         <Text style={styles.rating}>⭐ {product?.rating}</Text>
+                      </View>
+                    </View>
+                </TouchableOpacity>
              </Link>
            ))
-         ) : (
-           <Text style={{ padding: 20, color: "#94a3b8" }}>No products found.</Text>
-         )}
-         
-                 </View>
-        </ScrollView>
+           ) : (
+             <Text style={{ padding: 20, color: "#94a3b8" }}>No products found.</Text>
+           )}
+
+             </View> 
+         </ScrollView>
       </View>
 
-      {/* Categories Section */}
+    
       <View style={styles.categoriesSection}>
-        {/* <Text style={styles.categoriesTitle}>Shop by Category</Text> */}
+       
         <View style={styles.categoriesGrid}>
-          {/* Your existing categories code */}
+         
         </View>
       </View>
+
+      
+      <GlobalSearchOverlay
+        isVisible={isSearchOverlayVisible}
+        onClose={closeSearchOverlay} 
+      />
+
     </ScrollView>
   );
 }
@@ -290,6 +332,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#22c55e',
   },
+ 
   bestSellingList: {
     paddingHorizontal: 20,
     gap: 16,
@@ -308,11 +351,36 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+ 
+  productCard: { 
+    width: "48%",
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+
   productImage: {
     width: '100%',
     height: 150,
     resizeMode: 'cover',
   },
+
+  organicBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#22c55e",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  organicText: {
+    fontFamily: "Poppins_500Medium",
+    fontSize: 10,
+    color: "#ffffff",
+  },
+
   productInfo: {
     padding: 12,
   },
@@ -338,11 +406,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94a3b8',
   },
-  price: {
+  price: { 
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 16,
     color: '#22c55e',
   },
+  productDetails: { 
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 8,
+  },
+  productPrice: { 
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 16,
+    color: "#22c55e",
+    marginRight: 4,
+  },
+  productUnit: { 
+    fontFamily: "Poppins_400Regular",
+    fontSize: 12,
+    color: "#64748b",
+  },
+
   categoriesSection: {
     padding: 20,
   },
@@ -352,56 +437,47 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 16,
   },
-  categoriesGrid: {
+  categoriesGrid: { 
     gap: 16,
   },
+  
+  categoryCard: { 
+     width: 160, 
+     marginRight: 16, 
+     backgroundColor: "#ffffff",
+     borderRadius: 16,
+     overflow: "hidden",
+     shadowColor: "#000",
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.05,
+     shadowRadius: 3,
+     elevation: 1,
+   },
+   categoryImage: { width: "100%", height: 100, resizeMode: 'cover' },
+   categoryInfo: { padding: 12 },
+   categoryName: {
+     fontFamily: "Poppins_500Medium",
+     fontSize: 14,
+     color: "#1e293b",
+     marginBottom: 4,
+   },
+   categoryItems: {
+     fontFamily: "Poppins_400Regular",
+     fontSize: 12,
+     color: "#64748b",
+   },
+
+
+  
   productsSection: { paddingBottom: 24 },
-  productsGrid: {
+  productsGrid: { 
     paddingHorizontal: 20,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
-  productCard: {
-    width: "48%",
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: "hidden",
-  },
- 
-  organicBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "#22c55e",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  organicText: {
-    fontFamily: "Poppins_500Medium",
-    fontSize: 10,
-    color: "#ffffff",
-  },
- 
-  productDetails: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: 8,
-  },
-  productPrice: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
-    color: "#22c55e",
-    marginRight: 4,
-  },
-  productUnit: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 12,
-    color: "#64748b",
-  },
- 
+
+
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -414,5 +490,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#94a3b8',
   },
-  
+
 });

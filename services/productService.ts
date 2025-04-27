@@ -1,7 +1,7 @@
 import { api } from "@/lib/axios";
 
 export interface Product {
-    id: string;
+    _id: string;
     name: string;
     image: string;
     price: number;
@@ -12,7 +12,7 @@ export interface Product {
   }
 
   export interface Product {
-    id: string;
+    _id: string;
     name: string;
     image: string;
     price: number;
@@ -31,9 +31,10 @@ export interface Product {
   }
   
   export const getProducts = async (): Promise<Product[]> => {
-    const response = await api.get("/products");
-   
-    return response.data.results; 
+    
+    const response = await api.get("/customer/products");
+   console.log("reponse", response.data)
+    return response.data; 
   };
 
   export const getProductById = async (productId: string): Promise<Product> => {

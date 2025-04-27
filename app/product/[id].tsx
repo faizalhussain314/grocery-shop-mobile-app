@@ -6,9 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  TextInput,
+  TextInput, // TextInput might not be needed for quantity now
   Share as RNShare,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, Link, useRouter } from 'expo-router';
 import { getProductById, Product } from '@/services/productService';
@@ -20,21 +21,44 @@ import {
 } from '@expo-google-fonts/poppins';
 import { ArrowLeft, Share2, Minus, Plus } from 'lucide-react-native';
 import Constants from 'expo-constants';
-import { useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux'; // Keep useDispatch for thunk
 import { addItemToCartThunk } from '@/thunks/cartActions';
 import Toast from 'react-native-toast-message';
-import { ActivityIndicator } from 'react-native';
-import { useAppDispatch } from '@/lib/hook';
+// import { useAppDispatch } from '@/lib/hook'; // Use standard useDispatch unless you have a custom hook
+
+// Assuming formatKg is defined near your ProductCard or in a common helpers file
+// If not, copy the formatKg helper function here or import it.
+// For this example, let's assume you'll import it or place it here.
+// import { formatKg } from '../components/ProductCard'; // Adjust path as needed
+
+// --- Helper to format KG display (Copying from ProductCard if not imported) ---
+const formatKg = (kg: number): string => {
+    // Avoid precision issues like 0.7500000000000001
+    const fixedKg = parseFloat(kg.toFixed(3));
+    // Show integer if whole number, otherwise show decimals down to 3 places
+     // Check if fixedKg is a whole number (within a small tolerance for float comparisons)
+    if (Math.abs(fixedKg - Math.round(fixedKg)) < 0.0001) {
+        return Math.round(fixedKg).toString(); // Show as integer if it's like 1.000 -> 1
+    }
+    return fixedKg.toFixed(3); // Otherwise show with 3 decimals
+};
+
 
 export default function ProductScreen() {
   const [product, setProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  // Replace simple 'quantity' state with states for display quantity and toggles
+  const [displayQuantity, setDisplayQuantity] = useState(0); // Represents KG or Pieces
+  const [is250gSelected, setIs250gSelected] = useState(false);
+  const [is500gSelected, setIs500gSelected] = useState(false);
+
+
   const [loading, setLoading] = useState(true);
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [cartAdded, setCartAdded] = useState(false);
+  const [cartAdded, setCartAdded] = useState(false); // Seems unused based on handleAddToCart logic
   const router = useRouter();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch(); // Use standard useDispatch if useAppDispatch is not specifically required here
+
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -43,7 +67,71 @@ export default function ProductScreen() {
   });
   const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? '';
 
- 
+  // --- Quantity Change Handlers (Adapted from ProductCard) ---
+
+  // Handles 250g / 500g button clicks (Toggles selection and updates total)
+  const handleToggleWeight = useCallback((weightInGrams: 250 | 500) => {
+      if (!product || (product.unit !== 'kg' && product.unit !== 'g')) return; // Only for weight units
+
+      const weightInKg = weightInGrams / 1000; // 0.25 or 0.5
+      const isCurrentlySelected = weightInGrams === 250 ? is250gSelected : is500gSelected;
+
+      let newQuantity = displayQuantity;
+
+      if (isCurrentlySelected) {
+          // Deselecting: Subtract weight
+          newQuantity = Math.max(0, parseFloat((displayQuantity - weightInKg).toFixed(3)));
+      } else {
+          // Selecting: Add weight
+          newQuantity = parseFloat((displayQuantity + weightInKg).toFixed(3));
+      }
+
+      // Update selected state for the clicked button
+      if (weightInGrams === 250) {
+          setIs250gSelected(!isCurrentlySelected);
+      } else {
+          setIs500gSelected(!isCurrentlySelected);
+      }
+
+      // If quantity becomes 0, deselect BOTH toggles
+      if (newQuantity === 0) {
+          setIs250gSelected(false);
+          setIs500gSelected(false);
+      }
+
+      setDisplayQuantity(newQuantity); // Update display quantity
+  }, [product, displayQuantity, is250gSelected, is500gSelected]); // Add dependencies
+
+
+  // Handles + / - button clicks (increment/decrement by 1 KG or 1 Piece)
+  const handleQuantityChange = useCallback((change: number) => {
+      if (!product) return;
+
+      let incrementAmount;
+      let newQuantity;
+
+      if (product.unit === 'piece') {
+          incrementAmount = 1;
+          newQuantity = Math.max(1, displayQuantity + (change * incrementAmount)); // Min 1 piece
+      } else { // kg or g
+          incrementAmount = 1; // Change is always 1 KG
+          newQuantity = Math.max(0, parseFloat((displayQuantity + (change * incrementAmount)).toFixed(3))); // Min 0 KG
+          // If quantity becomes 0, deselect toggles
+           if (newQuantity === 0) {
+              setIs250gSelected(false);
+              setIs500gSelected(false);
+           }
+      }
+
+      setDisplayQuantity(newQuantity);
+
+  }, [product, displayQuantity]); // Add dependencies
+
+
+  // Remove the old incrementQuantity, decrementQuantity, handleQuickQuantity
+
+
+  // --- Share and Add to Cart Handlers ---
 
   const handleShare = useCallback(async () => {
     if (!product) return;
@@ -51,7 +139,7 @@ export default function ProductScreen() {
     try {
       const result = await RNShare.share({
         message: Platform.OS === 'ios' ? '' : `Check out ${product.name}!`,
-        url: Platform.OS === 'ios' ? `${BASE_URL}/product/${product.id}` : undefined,
+        url: Platform.OS === 'ios' ? `${BASE_URL}/product/${product._id}` : undefined,
         title: `Check out ${product.name}!`,
       });
     } catch (error) {
@@ -60,57 +148,102 @@ export default function ProductScreen() {
   }, [product]);
 
   const handleAddToCart = async () => {
-    if (!product) return;
+    if (!product || isAddingToCart) return;
+
+    let quantityToSend;
+    let displayUnit; // For the toast message
+
+    if (product.unit === 'piece') {
+        quantityToSend = Math.max(1, displayQuantity); // Ensure at least 1 piece is sent
+        displayUnit = 'piece(s)';
+        if (quantityToSend <= 0) { // Should not happen with Math.max(1,...), but good check
+             Toast.show({ type: 'error', text1: 'Invalid Quantity', text2:'Please select a valid quantity.' });
+             return;
+        }
+    } else { // kg or g
+        quantityToSend = Math.round(displayQuantity * 1000); // Convert KG to grams
+        displayUnit = `${formatKg(displayQuantity)}kg`;
+        if (quantityToSend <= 0) {
+            Toast.show({ type: 'error', text1: 'Select Quantity', text2:'Please add quantity using the buttons.' });
+            return;
+        }
+    }
+
 
     try {
       setIsAddingToCart(true);
-      await dispatch(addItemToCartThunk(product.id, quantity.toString()));
-      setCartAdded(true);
+      // Dispatch the thunk with product._id and the calculated quantityToSend (in grams or pieces)
+      await dispatch(addItemToCartThunk(product._id, quantityToSend.toString()) as any);
+
       Toast.show({
         type: 'success',
         text1: 'Added to Cart',
-        text2: `${product.name} has been added successfully!`,
+        text2: `${product.name} (${displayUnit}) added!`,
       });
+
+      // Optional: Reset quantity controls after adding to cart
+      if (product.unit === 'piece') {
+          setDisplayQuantity(1); // Reset to 1 piece
+      } else {
+          setDisplayQuantity(0); // Reset to 0 kg
+          setIs250gSelected(false);
+          setIs500gSelected(false);
+      }
+
+
     } catch (error) {
+      console.error("Add to cart error:", error)
       Toast.show({
         type: 'error',
         text1: 'Add to Cart Failed',
-        text2: 'Please try again.',
+        text2: 'An error occurred. Please try again.',
       });
     } finally {
       setIsAddingToCart(false);
-      setTimeout(() => setCartAdded(false), 3000);
+      // setCartAdded(false); // This state seems unused now, can potentially remove
     }
   };
 
-  const incrementQuantity = () => {
-    setQuantity(prev => Math.min(prev + 1, 10)); // Max 10 items
-  };
-
-  const decrementQuantity = () => {
-    setQuantity(prev => Math.max(prev - 1, 1)); // Min 1 item
-  };
-
-  const handleQuickQuantity = (amount: number) => {
-    setQuantity(prev => prev + amount);
-  };
-
+  // --- Effect to fetch Product Data ---
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const data = await getProductById(id);
         setProduct(data);
+        // Initialize display quantity based on product unit after fetching
+        if (data) {
+             setDisplayQuantity(data.unit === 'piece' ? 1 : 0); // Default to 1 for piece, 0 for weight
+             // Optionally, if you want to initialize with minimum quantity if applicable:
+             // setDisplayQuantity(data.unit === 'piece' ? 1 : (data.minQuantity ?? 0));
+        }
+
       } catch (error) {
         console.error('Error fetching product:', error);
+        // TODO: Handle error display to user
       } finally {
         setLoading(false);
       }
     };
 
     if (id) fetchProduct();
-  }, [id]);
+  }, [id]); // Add id as dependency
 
-  if (!fontsLoaded || !product || loading) return null;
+
+    // --- Derived State / Helpers for Rendering ---
+
+   const isWeightUnit = product?.unit === 'kg' || product?.unit === 'g';
+   const isAddToCartButtonDisabled = isAddingToCart || (isWeightUnit ? displayQuantity <= 0 : displayQuantity < 1);
+
+
+  if (!fontsLoaded || !product || loading) {
+       return (
+           <View style={styles.loaderContainer}>
+               <ActivityIndicator size="large" color="#22c55e" />
+               <Text style={styles.loadingText}>Loading product...</Text> {/* Added loading text */}
+           </View>
+       );
+   }
+
 
   return (
     <View style={styles.container}>
@@ -118,7 +251,7 @@ export default function ProductScreen() {
     shadowOffset: { width: 0, height: 2 } }}>
         <Toast position="top" topOffset={60} />
       </View>
-      
+
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Link href=".." asChild>
@@ -140,8 +273,9 @@ export default function ProductScreen() {
           <View style={styles.titleSection}>
             <Text style={styles.productName}>{product.name}</Text>
             <View style={styles.priceContainer}>
-              <Text style={styles.price}>₹{product.price.toFixed(2)}</Text>
-              <Text style={styles.unit}>/ {product.unit}</Text>
+               {/* Display price per unit (e.g., per 500g or per piece) */}
+              <Text style={styles.price}>₹{product.price?.toFixed(2) ?? 'N/A'}</Text>
+              <Text style={styles.unit}>/ {product.unit ?? 'N/A'}</Text> {/* Display the product's actual unit */}
             </View>
           </View>
 
@@ -152,48 +286,67 @@ export default function ProductScreen() {
           )}
 
           <View style={styles.ratingSection}>
-            <Text style={styles.rating}>⭐ {product.rating ?? 4.5}</Text>
-            <Text style={styles.reviews}>Based on 128 reviews</Text>
+             {/* Use optional chaining and nullish coalescing for safety */}
+            <Text style={styles.rating}>⭐ {product.rating?.toFixed(1) ?? 'N/A'}</Text>
+            <Text style={styles.reviews}>Based on 128 reviews</Text> {/* This seems static */}
           </View>
 
           <View style={styles.quantitySection}>
             <Text style={styles.quantityLabel}>Quantity</Text>
             <View style={styles.quantityControls}>
-              <TouchableOpacity 
-                style={[styles.quantityButton, quantity <= 1 && styles.quantityButtonDisabled]} 
-                onPress={decrementQuantity}
-                disabled={quantity <= 1}
-              >
-                <Minus size={20} color={quantity <= 1 ? "#94a3b8" : "#64748b"} />
-              </TouchableOpacity>
-              
-              <View style={styles.quantityDisplay}>
-                <Text style={styles.quantityText}>{quantity}</Text>
-              </View>
-              
-              <TouchableOpacity 
-                style={[styles.quantityButton, quantity >= 10 && styles.quantityButtonDisabled]}
-                onPress={incrementQuantity}
-                disabled={quantity >= 10}
-              >
-                <Plus size={20} color={quantity >= 10 ? "#94a3b8" : "#64748b"} />
-              </TouchableOpacity>
+               {/* Decrement Button */}
+               <TouchableOpacity
+                 style={[styles.quantityButton, (isWeightUnit ? displayQuantity <= 0 : displayQuantity <= 1) && styles.quantityButtonDisabled]} // Disable based on unit type
+                 onPress={() => handleQuantityChange(-1)} // Use the new handler
+                 disabled={isAddingToCart || (isWeightUnit ? displayQuantity <= 0 : displayQuantity <= 1)} // Disable if loading or at min quantity
+               >
+                 <Minus size={20} color={isAddingToCart || (isWeightUnit ? displayQuantity <= 0 : displayQuantity <= 1) ? "#94a3b8" : "#64748b"} />
+               </TouchableOpacity>
+
+               {/* Quantity Display */}
+               <View style={styles.quantityDisplay}>
+                  {isWeightUnit ? (
+                      // For weight units, show formatted KG and the 'kg' unit
+                      <Text style={styles.quantityText}>
+                          {formatKg(displayQuantity)}
+                          <Text style={styles.kgUnit}>kg</Text>
+                      </Text>
+                  ) : (
+                      // For piece units, show the integer quantity
+                      <Text style={styles.quantityText}>{displayQuantity}</Text>
+                  )}
+               </View>
+
+               {/* Increment Button */}
+               <TouchableOpacity
+                 style={[styles.quantityButton]} // No max quantity check in UI, rely on backend stock
+                 onPress={() => handleQuantityChange(1)} // Use the new handler
+                 disabled={isAddingToCart} // Disable if loading
+               >
+                 <Plus size={20} color={isAddingToCart ? "#94a3b8" : "#64748b"} />
+               </TouchableOpacity>
             </View>
 
-            <View style={styles.quickQuantityButtons}>
-              <TouchableOpacity
-                style={[styles.quickQuantityButton, quantity === 0.25 && styles.quickQuantityButtonActive]}
-                onPress={() => handleQuickQuantity(0.25)}
-              >
-                <Text style={[styles.quickQuantityText, quantity === 0.25 && styles.quickQuantityTextActive]}>250g</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.quickQuantityButton, quantity === 0.5 && styles.quickQuantityButtonActive]}
-                onPress={() => handleQuickQuantity(0.5)}
-              >
-                <Text style={[styles.quickQuantityText, quantity === 0.5 && styles.quickQuantityTextActive]}>500g</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Quick Quantity Buttons (250g/500g) - Only for weight units */}
+            {isWeightUnit && (
+              <View style={styles.quickQuantityButtons}>
+                <TouchableOpacity
+                  style={[styles.quickQuantityButton, is250gSelected && styles.quickQuantityButtonActive]}
+                  onPress={() => handleToggleWeight(250)} // Use the new toggle handler
+                  disabled={isAddingToCart}
+                >
+                  <Text style={[styles.quickQuantityText, is250gSelected && styles.quickQuantityTextActive]}>250g</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.quickQuantityButton, is500gSelected && styles.quickQuantityButtonActive]}
+                  onPress={() => handleToggleWeight(500)} // Use the new toggle handler
+                  disabled={isAddingToCart}
+                >
+                  <Text style={[styles.quickQuantityText, is500gSelected && styles.quickQuantityTextActive]}>500g</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+             {/* Removed the old quick quantity buttons as they don't fit the new logic */}
           </View>
 
           <View style={styles.section}>
@@ -209,7 +362,8 @@ export default function ProductScreen() {
               <View style={styles.nutritionGrid}>
                 {Object.entries(product.nutrition).map(([key, value]) => (
                   <View key={key} style={styles.nutritionItem}>
-                    <Text style={styles.nutritionValue}>{value}</Text>
+                    {/* Ensure value is rendered as text */}
+                    <Text style={styles.nutritionValue}>{value?.toString() ?? '-'}</Text>
                     <Text style={styles.nutritionLabel}>{key}</Text>
                   </View>
                 ))}
@@ -220,17 +374,26 @@ export default function ProductScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
+        {/* Add to Cart Button - Modified */}
         <TouchableOpacity
-          style={[styles.addToCartButton, isAddingToCart && { opacity: 0.6 }]}
+          style={[styles.addToCartButton, isAddToCartButtonDisabled && styles.addToCartButtonDisabled]}
           onPress={handleAddToCart}
-          disabled={isAddingToCart}
+          disabled={isAddToCartButtonDisabled} // Use the derived disabled state
         >
           {isAddingToCart ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.addToCartText}>Add to Cart</Text>
+            // Determine button text dynamically based on quantity state
+            <Text style={styles.addToCartText}>
+                {isWeightUnit ?
+                    (displayQuantity > 0 ? `Add ${formatKg(displayQuantity)}kg to Cart` : 'Select Quantity')
+                    :
+                    (displayQuantity > 0 ? `Add ${displayQuantity} to Cart` : 'Select Quantity') // For piece units
+                }
+            </Text>
           )}
         </TouchableOpacity>
+
 
         <Link href="/cart" asChild>
           <TouchableOpacity style={styles.cartIcon}>
@@ -339,64 +502,79 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 12,
   },
+   // Adapted quantityControls for ProductScreen
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 4,
+    // backgroundColor: '#f8fafc', // Removed background if not desired
+    // borderRadius: 12, // Removed border radius if not desired
+    // padding: 4, // Removed padding if not desired
     marginBottom: 12,
-  },
-  quantityButton: {
-    padding: 8,
-    backgroundColor: '#ffffff',
+    borderWidth: 1, // Added borders similar to ProductCard's quantitySelectorRow
+    borderColor: '#e2e8f0',
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    overflow: 'hidden',
   },
-  quantityButtonDisabled: {
-    backgroundColor: '#f1f5f9',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  quantityDisplay: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-  },
-  quantityText: {
+   quantityButton: { // Adapted quantityButton for ProductScreen
+     paddingVertical: 10, // Increased vertical padding
+     paddingHorizontal: 14, // Increased horizontal padding
+     alignItems: 'center',
+     justifyContent: 'center',
+     minWidth: 44, // Ensure decent tap area
+   },
+   quantityButtonDisabled: {
+     backgroundColor: '#f1f5f9', // Use lighter background when disabled
+     opacity: 0.6, // Reduce opacity
+   },
+   // Adapted quantityDisplay for ProductScreen
+   quantityDisplay: {
+     flexGrow: 1, // Allow text to take available space
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingVertical: 10, // Match button padding
+     backgroundColor: '#f8fafc', // Add a light background
+   },
+  quantityText: { // Use the same style as ProductCard for quantity text
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 18,
     color: '#1e293b',
   },
+   kgUnit: { // Style for the 'kg' unit
+      fontFamily: "Poppins_400Regular",
+      fontSize: 12,
+      color: '#475569',
+      marginLeft: 2, // Add a small space before 'kg'
+    },
+
+   // Adapted quickQuantityButtons for ProductScreen
   quickQuantityButtons: {
     flexDirection: 'row',
     gap: 12,
   },
+   // Adapted quickQuantityButton for ProductScreen
   quickQuantityButton: {
-    flex: 1,
+    flex: 1, // Allow buttons to take equal space
     backgroundColor: '#f8fafc',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // Reduced horizontal padding
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
-  quickQuantityButtonActive: {
+   quickQuantityButtonActive: {
     backgroundColor: '#22c55e15',
     borderColor: '#22c55e',
   },
-  quickQuantityText: {
+   quickQuantityText: { // Adapted quickQuantityText for ProductScreen
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
     color: '#64748b',
   },
-  quickQuantityTextActive: {
+   quickQuantityTextActive: {
     color: '#22c55e',
   },
+
   section: {
     marginBottom: 24,
   },
@@ -415,11 +593,14 @@ const styles = StyleSheet.create({
   nutritionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
+    marginHorizontal: -8, // Compensate for item padding
   },
   nutritionItem: {
-    width: '25%',
-    padding: 8,
+    width: '25%', // 4 items per row
+    paddingHorizontal: 8, // Add horizontal padding
+    paddingVertical: 4, // Add vertical padding
+     alignItems: 'center', // Center text within the item
+     marginBottom: 8, // Space between rows
   },
   nutritionValue: {
     fontFamily: 'Poppins_600SemiBold',
@@ -432,6 +613,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     textTransform: 'capitalize',
+    textAlign: 'center', // Center label text
   },
   footer: {
     width: '100%',
@@ -444,14 +626,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
+   // Adapted addToCartButton for ProductScreen
   addToCartButton: {
     flex: 1,
-    backgroundColor: '#22c55e',
-    paddingVertical: 16,
-    borderRadius: 16,
+    backgroundColor: '#22c55e', // Use green color
+    paddingVertical: 16, // Increased vertical padding
+    borderRadius: 16, // Increased border radius
     alignItems: 'center',
     marginRight: 12,
+    justifyContent: 'center', // Center content
+    minHeight: 56, // Ensure minimum height
   },
+   // Added style for disabled add to cart button
+   addToCartButtonDisabled: {
+       backgroundColor: '#a5d6a7', // Lighter green when disabled
+       opacity: 0.8, // Slightly reduced opacity
+   },
+   // Adapted addToCartText for ProductScreen
   addToCartText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 16,
@@ -470,5 +661,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+     width: 50, // Fixed size for cart icon
+     height: 50,
   },
+
+    // Added loader container and text styles
+    loaderContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#f8fafc',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontFamily: 'Poppins_400Regular',
+      fontSize: 16,
+      color: '#94a3b8',
+    },
 });

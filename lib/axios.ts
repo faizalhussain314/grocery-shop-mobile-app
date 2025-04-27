@@ -15,7 +15,7 @@ api.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    // console.log("token",token);
+    console.log("token",token);
   }
   else{
     console.log("token wasn't avaiable");

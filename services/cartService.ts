@@ -28,9 +28,9 @@ export const getCartItems = async () => {
 export const addToCart = async (productId: string, quantity: string) => {
   try {
   
-
+   console.log("productId", productId);
     const payload = {
-      productId,
+      productId:productId,
       quantity: parseInt(quantity),
     };
     const response = await api.post('/customer/cart', payload);

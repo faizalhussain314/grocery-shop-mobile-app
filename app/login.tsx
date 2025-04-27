@@ -96,7 +96,7 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.title}>Welcome Back</Text>
+        {/* <Text style={styles.title}>Welcome Back</Text> */}
         <Text style={styles.subtitle}>Sign in to continue</Text>
 
         {error && <Text style={styles.error}>{error}</Text>}
