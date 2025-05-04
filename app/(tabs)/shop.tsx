@@ -13,14 +13,15 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
-import { Search, SlidersHorizontal } from "lucide-react-native";
+import { Search, ShoppingCart, SlidersHorizontal } from "lucide-react-native";
 import { useState, useEffect } from "react";
 import { Category, getCategories } from "@/services/categroyService";
 import { Product, getProducts } from "@/services/productService";
 import Constants from "expo-constants";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import ProductCard from "../components/ProductCard"; 
 import GlobalSearchOverlay from "../components/GlobalSearchOverlay"; 
+import Toast from "react-native-toast-message";
 
 export default function ProductsScreen() {
   const [fontsLoaded] = useFonts({
@@ -35,6 +36,7 @@ export default function ProductsScreen() {
   const [isLoading, setIsLoading] = useState(true);
  
   const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
+   const router = useRouter(); 
 
 
   useEffect(() => {
@@ -66,6 +68,15 @@ export default function ProductsScreen() {
   const closeSearchOverlay = () => {
     setIsSearchOverlayVisible(false);
   };
+  const handleCategoryClick = (category: Category) => {
+    console.log('Category clicked:', category.name);
+    // Navigate to the subcategory list page, passing category name
+    // The route is /subcategories/[categoryName]
+    router.push({
+      pathname: '/subcategories/[categoryName]',
+      params: { categoryName: category.name }, // Pass category name as parameter
+    });
+  };
 
 
   if (!fontsLoaded || isLoading) {
@@ -78,7 +89,13 @@ export default function ProductsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+
+    <View style={styles.container}>
+        <View style={styles.toastWrapper}>
+          <Toast position="top" topOffset={90} />
+        </View>
+   
+    <ScrollView >
       <View style={styles.header}>
         <Text style={styles.title}>Shop</Text>
         <View style={styles.headerIcons}>
@@ -90,7 +107,7 @@ export default function ProductsScreen() {
             <Search size={20} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <SlidersHorizontal size={20} color="#64748b" />
+          <Link href={"/cart"} > <ShoppingCart size={20} color="#64748b" /></Link>
           </TouchableOpacity>
         </View>
       </View>
@@ -105,7 +122,7 @@ export default function ProductsScreen() {
           <View style={{ flexDirection: "row" }}>
             {categories.map((category , index) => (
              
-              <TouchableOpacity key={index} style={styles.categoryCard}>
+              <TouchableOpacity key={index} style={styles.categoryCard} onPress={() => handleCategoryClick(category)} >
                 <Image
                   source={{ uri: `${category.image}` }}
                   style={styles.categoryImage}
@@ -130,7 +147,6 @@ export default function ProductsScreen() {
               <ProductCard
                 key={index} 
                 product={product}
-                baseUrl={BASE_URL}
               />
             ))
           ) : (
@@ -146,6 +162,7 @@ export default function ProductsScreen() {
       />
 
     </ScrollView>
+    </View>
   );
 }
 
@@ -160,6 +177,13 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
     backgroundColor: "#ffffff",
+  },
+  toastWrapper: {
+    position: 'absolute', // Make sure it stays on top
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999, // This will set the highest z-index
   },
   title: { fontFamily: "Poppins_600SemiBold", fontSize: 24, color: "#1e293b" },
   headerIcons: { flexDirection: "row", gap: 12 },

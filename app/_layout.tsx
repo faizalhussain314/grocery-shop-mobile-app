@@ -34,7 +34,7 @@ export default function RootLayout() {
     <>
      <Provider store={store}>
      
-
+<Toast />
       <Stack screenOptions={{ headerShown: false }}>
     
      

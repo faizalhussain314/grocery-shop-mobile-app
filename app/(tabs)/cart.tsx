@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { Minus, Plus, Share2, Trash2, Scale } from 'lucide-react-native'; // Import Scale icon
-import { useState, useEffect } from 'react';
-import { getCartItems, createOrder } from '@/services/cartService'; // Assuming updateCartItem service exists or will be added
+import { useState, useEffect, useCallback } from 'react';
+import { getCartItems, createOrder, deleteCartItem } from '@/services/cartService'; // Assuming updateCartItem service exists or will be added
 import Constants from 'expo-constants';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 const formatKg = (kg: number): string => {
@@ -73,6 +74,9 @@ export default function CartScreen() {
     const router = useRouter();
 
     const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL;
+   
+    const [isFetching, setIsFetching] = useState(true); 
+    const [refreshing, setRefreshing] = useState(false);
 
     const [fontsLoaded] = useFonts({
         Poppins_400Regular,
@@ -80,32 +84,29 @@ export default function CartScreen() {
         Poppins_600SemiBold,
     });
 
-    useEffect(() => {
-        fetchCartItems();
-    }, []);
+   
 
 
-    const fetchCartItems = async () => {
+    const fetchCartItems = useCallback(async (isRefresh = false) => {
+        // Don't show full screen loader on pull-to-refresh, only on initial load
+        if (!isRefresh) {
+            setIsFetching(true);
+        }
         try {
             const data: CartItem[] = await getCartItems();
-
-           
             const processedItems: CartItemWithDisplay[] = data.map(item => {
                 const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
                 const initialDisplayQuantity = isWeightUnit
-                   
-                    ? item.quantity / 1000 
-                    : item.quantity; 
+                    ? item.quantity / 1000
+                    : item.quantity;
 
                 return {
                     ...item,
                     displayQuantity: parseFloat(initialDisplayQuantity.toFixed(3)),
-                     
-                    is250gSelected: false,
+                    is250gSelected: false, // Reset selection state on fetch
                     is500gSelected: false,
                 };
             });
-
             setItems(processedItems);
         } catch (error) {
             console.error('Failed to fetch cart items:', error);
@@ -114,9 +115,32 @@ export default function CartScreen() {
                 text1: 'Error',
                 text2: 'Failed to load cart items',
             });
+           
+        } finally {
+          
+            setIsFetching(false);
+            if (isRefresh) {
+                setRefreshing(false); 
+            }
         }
-    };
+    }, []);
 
+    useFocusEffect(
+        useCallback(() => {
+            console.log('Cart screen focused, fetching items...');
+            fetchCartItems();
+
+            return () => {
+               
+                console.log('Cart screen unfocused');
+            };
+        }, [fetchCartItems])
+    );
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true); 
+        fetchCartItems(true); 
+    }, [fetchCartItems]); 
   
     const handleQuantityChange = (id: string, change: number) => {
         setItems(currentItems => {
@@ -199,15 +223,49 @@ export default function CartScreen() {
      };
 
 
-    const handleRemoveItem = (id: string) => {
+    const handleRemoveItem = async  (id: string) => {
     
+
+        
         setItems(currentItems => currentItems.filter(item => item._id !== id));
+
+
+         try {
+
+      console.log(`Attempting to delete cart item: ${id}`);
+      await deleteCartItem(id); 
+      console.log(`Successfully deleted cart item: ${id} from backend.`);
+
+      setItems(currentItems => {
+          console.log(`Removing item ${id} from local state.`);
+          return currentItems.filter(item => item._id !== id);
+      });
+
+     
+      if (expandedItemId === id) {
+          setExpandedItemId(null);
+      }
+
+      Toast.show({
+          type: 'success',
+          text1: 'Item Removed',
+          text2: 'Item successfully removed from cart.',
+      });
+    }
+    catch (error) {
+        console.error(`Failed to remove cart item ${id}:`, error);
+        Toast.show({
+            type: 'error',
+            text1: 'Removal Failed',
+            text2: 'Could not remove item from cart. Please try again.',
+        });
       
-        if (expandedItemId === id) {
-            setExpandedItemId(null);
-        }
-      
-    };
+         setItems(currentItems => currentItems.map(item =>
+             item._id === id ? { ...item, isDeleting: false } : item
+         ));
+    }
+   
+  };
 
     const filteredItems = items.filter(item =>
         item.productId.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -228,7 +286,7 @@ export default function CartScreen() {
                     return sum + item.productId.price * quantityForCalculation;
                 } else {
                   
-                    const quantityIn500gUnits = item.displayQuantity / 0.5;
+                    const quantityIn500gUnits = item.displayQuantity / 1;
                   
                      if (item.displayQuantity <= 0) return sum; 
 
@@ -340,6 +398,14 @@ export default function CartScreen() {
         return null; // Or a loading spinner
     }
 
+    if (isFetching && !refreshing) { // Show only on initial load, not during pull-to-refresh
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#22c55e" />
+                <Text style={styles.loadingText}>Loading Cart...</Text>
+            </View>
+        );
+    }
     const total = calculateTotal();
 
     return (
@@ -369,14 +435,21 @@ export default function CartScreen() {
                     ) : (
                         filteredItems.map((item , index) => (
                             <View key={index} style={styles.cartItem}>
+                             <View>
                                 <Image
-                                    source={{ uri: `${BASE_URL}${item.productId.image}` }}
+                                    source={{ uri: `${item.productId.image}` }}
                                     style={styles.itemImage}
                                 />
+                                 <View>
+                                             <Text style={styles.itemPrice}>
+                                             Price: ₹{item.productId.price.toFixed(2)} 
+                                             </Text>
+                                        </View>
+                                </View>
                                 <View style={styles.itemDetails}>
                                     <View style={styles.itemHeader}>
-                                        <Text style={styles.itemName} numberOfLines={2}>{item.productId.name}</Text>
-                                        {/* Remove Item Button */}
+                                    <Text style={styles.itemName} numberOfLines={2}>{item.productId.name || 'Unnamed Product'}</Text>
+
                                         <TouchableOpacity
                                              style={styles.removeButton}
                                              onPress={() => handleRemoveItem(item._id)}
@@ -385,15 +458,11 @@ export default function CartScreen() {
                                         </TouchableOpacity>
                                     </View>
                                     <View style={styles.priceQuantity}>
-                                        <View>
-                                             <Text style={styles.itemPrice}>
-                                               Price: ₹{item.productId.price}
-                                             </Text>
-                                        </View>
+                                       
 
                                         {/* --- Quantity Controls --- */}
                                        
-                                            // Expanded Controls View
+                                          
                                             <View style={styles.expandedQuantityControls}>
                                                  {/* 250g/500g buttons (only for weight units) */}
                                                  {(item.productId.unit === 'kg' || item.productId.unit === 'g') && (
@@ -448,11 +517,11 @@ export default function CartScreen() {
                                                         onPress={() => setExpandedItemId(null)} 
                                                     >
                                                         <Text style={styles.quantityText}>
-                                                            {item.productId.unit === 'piece'
-                                                                ? item.displayQuantity // Show piece count
-                                                                : `${formatKg(item.displayQuantity)}`} {/* Show KG value */}
-                                                            {(item.productId.unit === 'kg' || item.productId.unit === 'g') && <Text style={styles.kgUnit}>kg</Text>} {/* Add 'kg' unit */}
-                                                        </Text>
+  {item.productId.unit === 'piece'
+    ? item.displayQuantity || 0 
+    : `${formatKg(item.displayQuantity || 0)}`} 
+</Text>
+
                                                     </Pressable>
 
                                                    
@@ -484,16 +553,16 @@ export default function CartScreen() {
                 {filteredItems.length > 0 && (
                     <View style={styles.summary}>
                         <Text style={styles.summaryTitle}>Order Summary</Text>
-                        {/* Add other summary rows like subtotal, delivery, etc. if applicable */}
+                       
                         <View style={[styles.summaryRow, styles.totalRow]}>
                             <Text style={styles.totalLabel}>Total</Text>
-                            {/* Ensure total is formatted with 2 decimal places */}
+                          
                             <Text style={styles.totalValue}>₹{total.toFixed(2)}</Text>
                         </View>
                     </View>
                 )}
                  {filteredItems.length === 0 && (
-                      // Optional: Add some padding below empty cart text if needed
+                     
                       <View style={{ height: 50 }} />
                  )}
             </ScrollView>
@@ -503,17 +572,17 @@ export default function CartScreen() {
             {filteredItems.length > 0 && (
                 <View style={styles.footer}>
                     <TouchableOpacity
-                        style={[styles.checkoutButton, (isLoading || total <= 0) && styles.checkoutButtonDisabled]} // Disable if loading or total is 0
-                        onPress={handleCheckout}
-                        disabled={isLoading || total <= 0} // Disable if loading or total is 0
-                    >
-                      <Text>
-                        {isLoading ? (
-                            <ActivityIndicator size="small" color="#ffffff" />
-                        ) : (
-                            <Text style={styles.checkoutText}>Proceed to Checkout</Text>
-                        )} </Text>
-                    </TouchableOpacity>
+    style={[styles.checkoutButton, (isLoading || total <= 0) && styles.checkoutButtonDisabled]} // Disable if loading or total is 0
+    onPress={handleCheckout}
+    disabled={isLoading || total <= 0} // Disable if loading or total is 0
+>
+  {isLoading ? (
+    <ActivityIndicator size="small" color="#ffffff" />
+  ) : (
+    <Text style={styles.checkoutText}>Proceed to Checkout</Text> // This is separate now
+  )}
+</TouchableOpacity>
+
                 </View>
             )}
         </View>
@@ -524,6 +593,21 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f8fafc',
+    },
+    loadingContainer: { // Style for the initial loading view
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f8fafc',
+    },
+    loadingText: {
+        marginTop: 15,
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 16,
+        color: '#64748b',
+    },
+    scrollViewContent: { // Optional: Add paddingBottom if footer overlaps last item
+        paddingBottom: 100, // Adjust needed if footer is tall
     },
     scrollView: {
         flex: 1,
@@ -624,6 +708,7 @@ const styles = StyleSheet.create({
     itemPrice: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 16, 
+        paddingInline:10,
         color: '#22c55e',
     },
      basePricePerUnit: {

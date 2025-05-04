@@ -22,18 +22,31 @@ export interface Product {
     active: boolean;
     description?: string;
     rating?: number;
-    nutrition?: {
-      calories?: number;
-      protein?: string;
-      carbs?: string;
-      fiber?: string;
-    };
+   
   }
+
+  export interface QuickPicks {
+    _id: string;
+    name: string;
+    category: string;
+    subcategory: string;
+    price: number;
+    unit: string;
+    stock: number;
+    active: boolean;
+    description: string;
+    image: string;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+    __v: number;
+    quickPicks: boolean;
+  }
+  
   
   export const getProducts = async (): Promise<Product[]> => {
     
     const response = await api.get("/customer/products");
-   console.log("reponse", response.data)
+  
     return response.data; 
   };
 
@@ -42,4 +55,27 @@ export interface Product {
     return res.data;
   };
   
+  export const getProductsBySubCat = async (
+    subCatId: string
+  ): Promise<Product[]> => {
+    const res = await api.get(`/customer/subcategory/${subCatId}`);
   
+   
+    // Ensure the result is always an array of Product
+    const data: Product[] = Array.isArray(res.data)
+      ? res.data                      
+      : res.data                      
+      ? [res.data]                    
+      : [];                          
+      console.log("getProductBysub",data)
+    return data;
+  };
+  
+
+  export const getQuickPicks = async (): Promise<QuickPicks[]> =>{
+    const res = await api.get<QuickPicks[]>("/customer/quick-picks");
+
+  return res.data;
+  }
+
+ 

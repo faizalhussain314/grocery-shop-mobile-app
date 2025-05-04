@@ -1,15 +1,15 @@
 // app/subcategories/[categoryName].tsx
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Dimensions } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import Constants from "expo-constants";
 import { getSubcategoriesByCategoryName, Subcategory } from '@/services/subcategoryService'; // Import the new service
-import { ArrowLeft } from 'lucide-react-native'; // Import back icon
-
+import { ArrowLeft, Search } from 'lucide-react-native'; // Import back icon
+import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
 
 const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? "";
-
+const { width } = Dimensions.get('window'); // Get screen width for responsive grid
 
 export default function SubcategoryListPage() {
     // Get parameters from the route
@@ -27,14 +27,14 @@ export default function SubcategoryListPage() {
     const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
+    const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
 
     useEffect(() => {
         const fetchSubcategories = async () => {
             if (!categoryName) {
-                 setError('Category name is missing.');
-                 setIsLoading(false);
-                 return;
+                setError('Category name is missing.');
+                setIsLoading(false);
+                return;
             }
             try {
                 setIsLoading(true);
@@ -53,36 +53,74 @@ export default function SubcategoryListPage() {
         fetchSubcategories();
     }, [categoryName]); // Re-fetch if categoryName changes
 
-
     if (!fontsLoaded) {
         return null; // Or a loading indicator
     }
 
+    const closeSearchOverlay = () => {
+        setIsSearchOverlayVisible(false);
+    };
+
+    const openSearchOverlay = () => {
+        setIsSearchOverlayVisible(true);
+    };
+
+    const handleProductList = (subcategory: Subcategory) => {
+        console.log('Subcategory clicked:', subcategory?.name, subcategory._id);
+
+        router.push({
+            pathname: '/productList/[productBySubCat]',
+            params: {
+              // 👇 key must match your [productBySubCat] segment
+              productBySubCat: subcategory._id,
+              subCategoryName: subcategory.name,  
+            },
+          });
+    };
 
     return (
         <View style={styles.container}>
-            {/* Configure the header dynamically */}
+            {/* --- Header (Keep as is) --- */}
+            <View style={styles.header}>
+                 <Text style={styles.title}>Sub Category</Text>
+                 <View style={styles.headerIcons}>
+
+                   <TouchableOpacity
+                     style={styles.iconButton}
+                     onPress={openSearchOverlay}
+                   >
+                     <Search size={20} color="#64748b" />
+                   </TouchableOpacity>
+
+                 </View>
+               </View>
+
+            {/* --- Stack Screen Options (Keep as is) --- */}
             <Stack.Screen
                 options={{
-                    title: categoryName || 'Subcategories', // Use category name as title
+                    title: categoryName || 'Subcategories',
                     headerTitleStyle: {
                         fontFamily: 'Poppins_600SemiBold',
                         fontSize: 18,
                         color: '#1e293b',
                     },
-                     headerStyle: {
+                    headerStyle: {
                         backgroundColor: '#ffffff',
-                     },
-                     headerTintColor: '#1e293b', // Color of the back button icon
-                     headerLeft: () => ( // Custom back button
-                         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10, padding: 5 }}>
-                             <ArrowLeft size={24} color="#1e293b" />
-                         </TouchableOpacity>
-                     ),
-                     headerShadowVisible: false, // Hide the header shadow line
+                    },
+                    headerTintColor: '#1e293b',
+                    headerLeft: () => (
+                        <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10, padding: 5 }}>
+                            <ArrowLeft size={24} color="#1e293b" />
+                        </TouchableOpacity>
+                    ),
+                    headerShadowVisible: false,
                 }}
             />
 
+            {/* --- Search Overlay (Keep as is) --- */}
+            <GlobalSearchOverlay isVisible={isSearchOverlayVisible} onClose={closeSearchOverlay} />
+
+            {/* --- Loading State (Keep as is) --- */}
             {isLoading && (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#22c55e" />
@@ -90,43 +128,40 @@ export default function SubcategoryListPage() {
                 </View>
             )}
 
+            {/* --- Error State (Keep as is) --- */}
             {error && (
-                 <View style={styles.errorContainer}>
-                     <Text style={styles.errorText}>{error}</Text>
-                 </View>
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
             )}
 
-
+            {/* --- Subcategory Grid --- */}
             {!isLoading && !error && (
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollViewContent} // Use new grid styles
+                >
                     {subcategories.length === 0 ? (
                         <Text style={styles.emptyText}>No subcategories found for "{categoryName}".</Text>
                     ) : (
-                        subcategories.map(subcategory => (
-                            // Link to a products list page for this subcategory (optional next step)
-                            // <Link key={subcategory.id} href={`/products?subcategoryId=${subcategory.id}`} asChild>
-                                <TouchableOpacity
-                                     key={subcategory.id}
-                                     style={styles.subcategoryCard}
-                                     // TODO: Implement navigation to products list for this subcategory if needed
-                                     onPress={() => {
-                                         console.log("Clicked subcategory:", subcategory.name);
-                                         // Example navigation to a generic product list page filtered by subcategory
-                                         // router.push(`/products?subcategoryId=${subcategory.id}&subcategoryName=${subcategory.name}`);
-                                     }}
-                                >
-                                    <Image
-                                        source={{ uri: `${BASE_URL}${subcategory.image}` }}
-                                        style={styles.subcategoryImage}
-                                        onError={(e) => console.log('Image load error:', e.nativeEvent.error, subcategory.image)} // Log image errors
-                                    />
-                                    <View style={styles.subcategoryInfo}>
-                                        <Text style={styles.subcategoryName}>{subcategory.name}</Text>
-                                        {/* Optionally add more details like isActive status or item count */}
-                                        {/* <Text style={styles.subcategoryStatus}>{subcategory.isActive ? 'Active' : 'Inactive'}</Text> */}
-                                    </View>
-                                </TouchableOpacity>
-                            // </Link>
+                        subcategories.map((subcategory, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                style={styles.subcategoryCard} // Use new card styles
+                                onPress={() => handleProductList(subcategory)}
+                            >
+                                <Image
+                                    source={{ uri: `${BASE_URL}${subcategory.image}` }}
+                                    style={styles.subcategoryImage} // Use new image styles
+                                    resizeMode='cover' // Changed resizeMode slightly for better fit sometimes
+                                />
+                                <View style={styles.subcategoryInfo}>
+                                    <Text style={styles.subcategoryName} numberOfLines={2} ellipsizeMode="tail">
+                                        {subcategory.name}
+                                    </Text>
+                                    {/* Optional status text can be added here if needed */}
+                                </View>
+                            </TouchableOpacity>
                         ))
                     )}
                 </ScrollView>
@@ -135,11 +170,45 @@ export default function SubcategoryListPage() {
     );
 }
 
+// --- Styles (Updated for Grid Layout) ---
+
+ // Calculate width for 2 columns with margins
+const numColumns = 2;
+const cardMargin = 20; 
+const cardWidth = (width / 2) - (cardMargin * 2);
+const horizontalGap = 16; // The desired space between columns (adjust as needed)
+const verticalGap = 16; 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc', // Light background
+        backgroundColor: '#f8fafc',
     },
+    // --- Header styles (Keep as is) ---
+     header: {
+         flexDirection: "row",
+         justifyContent: "space-between",
+         alignItems: "center",
+         paddingHorizontal: 20,
+         paddingTop: 60, // Adjust as needed for status bar height
+         paddingBottom: 15, // Reduced bottom padding a bit
+         backgroundColor: "#ffffff",
+         // Add a subtle shadow/border if needed
+         borderBottomWidth: 1,
+         borderBottomColor: '#e2e8f0',
+       },
+       title: {
+        fontFamily: "Poppins_600SemiBold",
+        fontSize: 20, // Slightly smaller title for balance
+        color: "#1e293b"
+      },
+       headerIcons: { flexDirection: "row", gap: 12 },
+       iconButton: {
+         padding: 8,
+         backgroundColor: "#f1f5f9",
+         borderRadius: 20, // Make it circular
+       },
+    // --- Loading and Error styles (Keep as is) ---
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -151,24 +220,17 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#94a3b8',
     },
-     errorContainer: {
+    errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
-     },
-     errorText: {
+    },
+    errorText: {
         fontFamily: 'Poppins_400Regular',
         fontSize: 16,
-        color: '#ef4444', // Red color for error
+        color: '#ef4444',
         textAlign: 'center',
-     },
-    scrollView: {
-        flex: 1,
-        padding: 10, // Add padding around the list
-    },
-    scrollViewContent: {
-         paddingBottom: 20, // Add padding at the bottom
     },
     emptyText: {
         fontFamily: 'Poppins_400Regular',
@@ -176,40 +238,62 @@ const styles = StyleSheet.create({
         color: '#64748b',
         textAlign: 'center',
         marginTop: 50,
+        width: '100%' // Ensure it takes full width in the flex container
     },
+    // --- ScrollView and Content styles (Updated for Grid) ---
+    scrollView: {
+        flex: 1,
+    },
+    scrollViewContent: {
+        flexDirection: 'row',       // Arrange items horizontally
+        flexWrap: 'wrap',         // Allow items to wrap to the next line
+        justifyContent: 'flex-start', // Align items to the start
+        paddingHorizontal: cardMargin,  // Add horizontal padding to the container
+        paddingTop: 15,             // Add padding at the top of the grid
+        paddingBottom: 20,
+    },
+    // --- Subcategory Card styles (Updated for Grid) ---
     subcategoryCard: {
-        flexDirection: 'row', // Image and text side by side
+        // Calculate % width, subtract a bit for spacing
+                                           // Adjust the '- 5%' based on desired gap
         backgroundColor: '#ffffff',
         borderRadius: 12,
-        marginBottom: 12, // Space between items
+        marginHorizontal: `1%`, // e.g. Small horizontal margin (1% left + 1% right = 2% total horizontal space per card)
+        // (48% + 2%) * 2 columns = 100%
+        width: `48%`,
+marginBottom: verticalGap,
+       // Vertical space between rows
+        // marginHorizontal: cardMargin , // Let justifyContent handle horizontal spacing
         overflow: 'hidden',
-        alignItems: 'center', // Vertically center content
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 2,
-         paddingRight: 12, // Add padding on the right
+        alignItems: 'center',       // Center items horizontally in the card
+        paddingBottom: 12,         // Padding below the text
+        shadowColor: '#94a3b8',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 3,
     },
     subcategoryImage: {
-        width: 80, // Fixed image width
-        height: 80, // Fixed image height
-        resizeMode: 'cover',
-         marginRight: 12, // Space between image and text
+        width: '100%',              // Image takes full width of the card
+        height: cardWidth * 0.8,   // Adjust height relative to width (e.g., 80% of width)
+        marginBottom: 10,          // Space between image and text
     },
     subcategoryInfo: {
-        flex: 1, // Allow text to take remaining space
-        justifyContent: 'center', // Vertically center text
+        alignItems: 'center',       // Center text block itself
+        paddingHorizontal: 8,      // Add horizontal padding for text if it wraps
     },
     subcategoryName: {
         fontFamily: 'Poppins_500Medium',
-        fontSize: 16,
+        fontSize: 14,             // Slightly smaller font for grid items
         color: '#1e293b',
-        marginBottom: 4,
+        textAlign: 'center',      // Center the text
     },
-     subcategoryStatus: { // Style for optional status text
-         fontFamily: 'Poppins_400Regular',
-         fontSize: 12,
-         color: '#64748b',
-     },
+    // Optional: Add styles for subcategoryStatus if you uncomment it later
+    // subcategoryStatus: {
+    //     fontFamily: 'Poppins_400Regular',
+    //     fontSize: 12,
+    //     color: '#64748b',
+    //     textAlign: 'center',
+    //     marginTop: 2,
+    // },
 });

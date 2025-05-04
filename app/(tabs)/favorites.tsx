@@ -17,15 +17,18 @@ import { getOrders, Order } from '@/services/orderService';
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
-    case 'delivered':
-      return '#22c55e';
-    case 'processing':
-    case 'placed':
-      return '#eab308';
-    case 'cancelled':
-      return '#ef4444';
+    case "placed":
+      return "#3b82f6"; // Corresponds to Tailwind text-blue-500
+    case "packing":
+      return "#6366f1"; // Corresponds to Tailwind text-indigo-500
+    case "ready":
+      return "#14b8a6"; // Corresponds to Tailwind text-teal-500
+    case "dispatch":
+      return "#f97316"; // Corresponds to Tailwind text-orange-500
+    case "delivered":
+      return "#22c55e"; // Corresponds to Tailwind text-green-500
     default:
-      return '#64748b';
+      return "#6b7280"; // Corresponds to Tailwind text-gray-500
   }
 };
 
@@ -93,7 +96,7 @@ export default function OrdersScreen() {
                 <View key={index} style={styles.orderItem}>
                   <Package size={16} color="#64748b" />
                   <Text style={styles.itemText}>
-                    {orderItem.quantity} ×{' '}
+                    {orderItem.quantity} ×
                     {orderItem.productId?.name ?? 'Unknown Product'}
                   </Text>
                 </View>

@@ -20,7 +20,6 @@ import { addItemToCartThunk } from '@/thunks/cartActions'; // Example path
 
 interface ProductCardProps {
   product: Product;
-  baseUrl: string;
 }
 
 // Helper to format KG display
@@ -34,7 +33,6 @@ const formatKg = (kg: number): string => {
 
 const ProductCard: React.FC<ProductCardProps> = ({
   product,
-  baseUrl,
 }) => {
   const dispatch = useDispatch();
 

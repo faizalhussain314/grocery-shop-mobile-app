@@ -8,6 +8,7 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [address , setAddress] = useState('');
   const [error, setError] = useState('');
   const register = useAuthStore((state) => state.register);
 
@@ -23,7 +24,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     try {
-      await register(email, password, name);
+      await register(email, password, name , );
       router.replace('/(tabs)');
     } catch (err) {
       setError('Registration failed');
@@ -40,8 +41,8 @@ export default function RegisterScreen() {
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Sign up to get started</Text>
+        <Text style={styles.title}>Contact Us</Text>
+        <Text style={styles.subtitle}>For Creating New Account Kindly Reach Out</Text>
 
         {error && <Text style={styles.error}>{error}</Text>}
 
@@ -64,8 +65,18 @@ export default function RegisterScreen() {
             keyboardType="phone-pad"
           />
         </View>
-
         <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Address"
+            value={address}
+            onChangeText={setAddress}
+            autoCapitalize="none"
+            keyboardType="phone-pad"
+          />
+        </View>
+
+        {/* <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Password"
@@ -73,10 +84,10 @@ export default function RegisterScreen() {
             onChangeText={setPassword}
             secureTextEntry
           />
-        </View>
+        </View> */}
 
         <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-          <Text style={styles.registerButtonText}>Sign Up</Text>
+          <Text style={styles.registerButtonText}>Submit</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>

@@ -59,7 +59,7 @@ export default function ThankYouScreen() {
        )}
 
 
-       <Text style={styles.estimatedDelivery}>Estimated delivery: 6 AM - 8 AM</Text>
+       <Text style={styles.estimatedDelivery}>Estimated delivery: 6 AM - 7 AM</Text>
 
        {/* Buttons */}
        <View style={styles.buttons}>

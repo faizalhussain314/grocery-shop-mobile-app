@@ -137,7 +137,7 @@ export default function LoginScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
           <Link href="/register" style={styles.registerLink}>
-            <Text style={styles.registerText}>Sign Up</Text>
+            <Text style={styles.registerText}>Contact Our Support</Text>
           </Link>
         </View>
       </View>
@@ -228,4 +228,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#22c55e',
   },
-});
+})
