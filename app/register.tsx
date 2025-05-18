@@ -148,13 +148,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1e293b',
     padding: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
   registerButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#9747FF',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -182,6 +182,6 @@ const styles = StyleSheet.create({
   loginText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 14,
-    color: '#22c55e',
+    color: '#9747FF',
   },
 });

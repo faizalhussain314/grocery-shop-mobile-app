@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Tabs } from 'expo-router';
 import { House, ShoppingBag, Logs, User, ShoppingBasket } from 'lucide-react-native';
 import { Text } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export default function TabLayout() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function TabLayout() {
 
   useEffect(() => {
     if (!isLoading && !token) {
-      // Delay ensures router is fully hydrated, especially on web
+    
       const timeout = setTimeout(() => {
         router.replace('/login');
       }, 0);
@@ -29,6 +30,8 @@ export default function TabLayout() {
 
   try {
     return (
+      <>
+       {/* <Toast /> */}
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -38,10 +41,13 @@ export default function TabLayout() {
             elevation: 0,
             height: 60,
             paddingBottom: 8,
+            borderRadius:"25px",
           },
-          tabBarActiveTintColor: '#22c55e',
+         
+          tabBarActiveTintColor: '#AC6CFF',
           tabBarInactiveTintColor: '#64748b',
         }}>
+         
         <Tabs.Screen
           name="index"
           options={{
@@ -78,6 +84,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      </>
     );
   } catch (error) {
     console.error('TabLayout error:', error);

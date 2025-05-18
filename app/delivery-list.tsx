@@ -51,7 +51,7 @@ export default function DeliveryListScreen() {
           onPress={() => router.push('/add-delivery')}
           style={styles.addButton}
         >
-          <Plus size={24} color="#22c55e" />
+          <Plus size={24} color="#9747FF" />
         </TouchableOpacity>
       </View>
 
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   addFirstButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#9747FF',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,

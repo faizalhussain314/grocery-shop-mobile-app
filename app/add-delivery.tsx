@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1e293b',
     padding: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#f1f5f9',
   },
   submitButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#9747FF',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

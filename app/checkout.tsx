@@ -33,7 +33,7 @@ export default function CheckoutScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MapPin size={20} color="#22c55e" />
+            <MapPin size={20} color="#9747FF" />
             <Text style={styles.sectionTitle}>Delivery Address</Text>
           </View>
           <View style={styles.card}>
@@ -64,7 +64,7 @@ export default function CheckoutScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <CreditCard size={20} color="#22c55e" />
+            <CreditCard size={20} color="#9747FF" />
             <Text style={styles.sectionTitle}>Payment Method</Text>
           </View>
           <View style={styles.card}>
@@ -133,7 +133,7 @@ export default function CheckoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
   },
   header: {
     flexDirection: 'row',
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
     borderRadius: 12,
     marginBottom: 12,
   },
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   discountText: {
-    color: '#22c55e',
+    color: '#9747FF',
   },
   
   paymentOptions: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 20,
-    color: '#22c55e',
+    color: '#9747FF',
   },
   footer: {
     padding: 20,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#f1f5f9',
   },
   placeOrderButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#9747FF',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',

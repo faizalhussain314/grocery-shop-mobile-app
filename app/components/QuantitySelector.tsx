@@ -25,7 +25,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
         onPress={onDecrement}
         activeOpacity={0.7}
       >
-        <Minus size={16} color="#22c55e" />
+        <Minus size={16} color="#9747FF" />
       </TouchableOpacity>
       
       <View style={styles.quantityContainer}>
@@ -37,7 +37,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
         onPress={onIncrement}
         activeOpacity={0.7}
       >
-        <Plus size={16} color="#22c55e" />
+        <Plus size={16} color="#9747FF" />
       </TouchableOpacity>
     </View>
   );
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
     padding: 4,
     overflow: 'hidden',
   },

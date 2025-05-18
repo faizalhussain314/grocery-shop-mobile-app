@@ -256,7 +256,7 @@ export default function ProductScreen() {
   if (!fontsLoaded || !product || loading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color="#9747FF" />
         <Text style={styles.loadingText}>Loading product...</Text>
       </View>
     );
@@ -295,7 +295,7 @@ export default function ProductScreen() {
           source={{ uri: `${BASE_URL}${product.image}` }}
           style={styles.productImage}
         />
-
+  
         <View style={styles.content}>
           <View style={styles.titleSection}>
             <Text style={styles.productName}>{product.name}</Text>
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
   price: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 24,
-    color: '#22c55e',
+    color: '#212121',
     marginRight: 4,
   },
   unit: {
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   badge: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#61DF66',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    // backgroundColor: '#f8fafc', // Removed background if not desired
+    // backgroundColor: '#FAF7FF', // Removed background if not desired
     // borderRadius: 12, // Removed border radius if not desired
     // padding: 4, // Removed padding if not desired
     marginBottom: 12,
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10, // Match button padding
-    backgroundColor: '#f8fafc', // Add a light background
+    backgroundColor: '#FAF7FF', // Add a light background
   },
   quantityText: {
     // Use the same style as ProductCard for quantity text
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
   // Adapted quickQuantityButton for ProductScreen
   quickQuantityButton: {
     flex: 1, // Allow buttons to take equal space
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
     paddingVertical: 12,
     paddingHorizontal: 16, // Reduced horizontal padding
     borderRadius: 12,
@@ -633,8 +633,8 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   quickQuantityButtonActive: {
-    backgroundColor: '#22c55e15',
-    borderColor: '#22c55e',
+    backgroundColor: '#9747FF15',
+    borderColor: '#9747FF',
   },
   quickQuantityText: {
     // Adapted quickQuantityText for ProductScreen
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   quickQuantityTextActive: {
-    color: '#22c55e',
+    color: '#9747FF',
   },
 
   section: {
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
   // Adapted addToCartButton for ProductScreen
   addToCartButton: {
     flex: 1,
-    backgroundColor: '#22c55e', // Use green color
+    backgroundColor: '#9747FF', // Use green color
     paddingVertical: 16, // Increased vertical padding
     borderRadius: 16, // Increased border radius
     alignItems: 'center',
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   },
   // Added style for disabled add to cart button
   addToCartButtonDisabled: {
-    backgroundColor: '#a5d6a7', // Lighter green when disabled
+    backgroundColor: '#C191FF', // Lighter green when disabled
     opacity: 0.8, // Slightly reduced opacity
   },
   // Adapted addToCartText for ProductScreen
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
   },
   loadingText: {
     marginTop: 12,

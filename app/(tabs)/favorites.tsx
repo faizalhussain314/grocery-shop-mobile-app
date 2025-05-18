@@ -18,17 +18,17 @@ import { getOrders, Order } from '@/services/orderService';
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "placed":
-      return "#3b82f6"; // Corresponds to Tailwind text-blue-500
+      return "#3b82f6"; 
     case "packing":
-      return "#6366f1"; // Corresponds to Tailwind text-indigo-500
+      return "#6366f1"; 
     case "ready":
-      return "#14b8a6"; // Corresponds to Tailwind text-teal-500
+      return "#14b8a6"; 
     case "dispatch":
-      return "#f97316"; // Corresponds to Tailwind text-orange-500
+      return "#f97316"; 
     case "delivered":
-      return "#22c55e"; // Corresponds to Tailwind text-green-500
+      return "#9747FF"; 
     default:
-      return "#6b7280"; // Corresponds to Tailwind text-gray-500
+      return "#6b7280"; 
   }
 };
 
@@ -89,14 +89,14 @@ export default function OrdersScreen() {
                   {item.status}
                 </Text>
               </View>
-            </View>
+            </View> 
 
             <View style={styles.itemsList}>
               {item.items.map((orderItem, index) => (
                 <View key={index} style={styles.orderItem}>
                   <Package size={16} color="#64748b" />
                   <Text style={styles.itemText}>
-                    {orderItem.quantity} ×
+                    {orderItem.quantity/1000} kg ×
                     {orderItem.productId?.name ?? 'Unknown Product'}
                   </Text>
                 </View>
@@ -123,7 +123,7 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
   },
   header: {
     paddingTop: 60,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 18,
-    color: '#22c55e',
+    color: '#9747FF',
   },
   trackButton: {
     flexDirection: 'row',
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   trackButtonText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
-    color: '#22c55e',
+    color: '#9747FF',
     marginRight: 4,
   },
 });

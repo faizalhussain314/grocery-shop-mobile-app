@@ -26,6 +26,8 @@ import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
 import { getQuickPicks, Product, QuickPicks } from '@/services/productService';
 import ProductCard from '../components/ProductCard';
 import Toast from 'react-native-toast-message';
+import FeaturedVideoSection from '../components/FeaturedVideoSection';
+import { api } from '@/lib/axios';
 // import VideoCard from '../components/VideoCard';
 
 const { width } = Dimensions.get('window');
@@ -96,6 +98,7 @@ export default function HomeScreen() {
      
       try {
         const data = await getBestSelling();
+       
         setBestSelling(data);
       } catch (error) {
         console.error('Failed to load best selling products:', error);
@@ -117,8 +120,8 @@ export default function HomeScreen() {
         const data = await getQuickPicks(); 
         setquickPicks(data);
       } catch (error) {
-        console.error('Failed to load categories:', error);
-        setCategoriesError('Failed to load categories.');
+        console.error('Failed to load quickpicks:', error);
+        setCategoriesError('Failed to load quickpicks.');
       } finally {
         setIquickPicksLoading(false);
       }
@@ -149,7 +152,7 @@ export default function HomeScreen() {
   if (!fontsLoaded || isquickPicksLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color="#9747FF" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -165,7 +168,7 @@ export default function HomeScreen() {
       
       <View style={styles.header}>
         <View style={styles.locationContainer}>
-          <MapPin size={20} color="#22c55e" />
+          <MapPin size={20} color="#9747FF" />
           <Text style={styles.locationText}>K-Truck</Text>
         </View>
         <View style={styles.headerIcons}>
@@ -222,7 +225,7 @@ export default function HomeScreen() {
       <View style={styles.bestSellingSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
-            <TrendingUp size={24} color="#22c55e" />
+            <TrendingUp size={24} color="#AC6CFF" />
             <Text style={styles.sectionTitle}>Best Selling</Text>
           </View>
           {/* <TouchableOpacity>
@@ -309,6 +312,7 @@ export default function HomeScreen() {
   duration="11:25"
   title="Farm‑Fresh Vegetables"
 /> */}
+<FeaturedVideoSection />
 
       {/* </View> */}
 
@@ -370,7 +374,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
   },
   header: {
     flexDirection: 'row',
@@ -403,7 +407,7 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 10,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
     borderRadius: 12,
   },
   sliderContainer: {
@@ -436,7 +440,7 @@ const styles = StyleSheet.create({
   slideSubtitle: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
-    color: '#f8fafc',
+    color: '#FAF7FF',
   },
   pagination: {
     flexDirection: 'row',
@@ -479,7 +483,7 @@ const styles = StyleSheet.create({
   seeAllButton: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
-    color: '#22c55e',
+    color: '#9747FF',
   },
 
   bestSellingList: {
@@ -545,7 +549,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 14, // Reduced font size
-    color: '#22c55e',
+    color: '#AC6CFF',
     marginRight: 4,
   },
   productUnit: {
@@ -624,7 +628,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAF7FF',
   },
   loadingText: {
     marginTop: 12,

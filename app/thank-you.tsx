@@ -95,7 +95,7 @@ export default function ThankYouScreen() {
      title: {
        fontFamily: 'Poppins_600SemiBold',
        fontSize: 32,
-       color: '#22c55e',
+       color: '#9747FF',
        marginBottom: 16,
      },
      message: {
@@ -123,7 +123,7 @@ export default function ThankYouScreen() {
        gap: 12,
      },
      homeButton: {
-       backgroundColor: '#22c55e',
+       backgroundColor: '#9747FF',
        paddingVertical: 16,
        borderRadius: 16,
        alignItems: 'center',

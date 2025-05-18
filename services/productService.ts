@@ -73,7 +73,7 @@ export interface Product {
   
 
   export const getQuickPicks = async (): Promise<QuickPicks[]> =>{
-    const res = await api.get<QuickPicks[]>("/customer/quick-picks");
+    const res = await api.get("/customer/quick-picks");
 
   return res.data;
   }

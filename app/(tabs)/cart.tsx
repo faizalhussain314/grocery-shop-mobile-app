@@ -401,7 +401,7 @@ export default function CartScreen() {
     if (isFetching && !refreshing) { // Show only on initial load, not during pull-to-refresh
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#22c55e" />
+                <ActivityIndicator size="large" color="#9747FF" />
                 <Text style={styles.loadingText}>Loading Cart...</Text>
             </View>
         );
@@ -574,7 +574,7 @@ export default function CartScreen() {
                     <TouchableOpacity
     style={[styles.checkoutButton, (isLoading || total <= 0) && styles.checkoutButtonDisabled]} // Disable if loading or total is 0
     onPress={handleCheckout}
-    disabled={isLoading || total <= 0} // Disable if loading or total is 0
+    disabled={isLoading || total <= 0} 
 >
   {isLoading ? (
     <ActivityIndicator size="small" color="#ffffff" />
@@ -592,19 +592,19 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#FAF7FF',
     },
     loadingContainer: { // Style for the initial loading view
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#FAF7FF',
     },
     loadingText: {
         marginTop: 15,
         fontFamily: 'Poppins_500Medium',
         fontSize: 16,
-        color: '#64748b',
+        color: '#9747FF',
     },
     scrollViewContent: { // Optional: Add paddingBottom if footer overlaps last item
         paddingBottom: 100, // Adjust needed if footer is tall
@@ -699,17 +699,14 @@ const styles = StyleSheet.create({
         flex: 1, // Allow name to wrap
         marginRight: 8,
     },
-    priceQuantity: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end', // Align items at the bottom
-        marginTop: 8, // Space above price/quantity row
-    },
+    priceQuantity:             { justifyContent: 'space-between', alignItems: 'flex-end' ,paddingVertical: 4,paddingHorizontal:10 , marginTop: 8, },
+    expandedQuantityControls:  { flexDirection: 'column', alignItems: 'flex-end' },
+    
     itemPrice: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 16, 
         paddingInline:10,
-        color: '#22c55e',
+        color: '#9747FF',
     },
      basePricePerUnit: {
          fontFamily: 'Poppins_400Regular',
@@ -758,13 +755,13 @@ const styles = StyleSheet.create({
      },
 
     // --- Expanded Quantity Controls (Visible when expanded) ---
-    expandedQuantityControls: {
-        flexDirection: 'column', // Stack buttons vertically
-        alignItems: 'flex-end', // Align controls to the right
-         borderRadius: 12,
-         paddingVertical: 4, // Add some vertical padding if background is used
-         paddingHorizontal: 8, // Add some horizontal padding
-    },
+    // expandedQuantityControls: {
+    //     flexDirection: 'column', // Stack buttons vertically
+    //     alignItems: 'flex-end', // Align controls to the right
+    //      borderRadius: 12,
+    //      paddingVertical: 4, // Add some vertical padding if background is used
+    //      paddingHorizontal: 8, // Add some horizontal padding
+    // },
     incrementSelectorRow: {
         flexDirection: 'row',
         marginBottom: 8, // Space between weight toggles and +/- row
@@ -779,7 +776,7 @@ const styles = StyleSheet.create({
          borderRadius: 12, // Rounded corners
          borderWidth: 1,
          borderColor: '#cbd5e1',
-         backgroundColor: '#f8fafc', // Light background
+         backgroundColor: '#FAF7FF', // Light background
      },
      incrementButtonActive: { // Style for selected 250/500g buttons
          borderColor: '#4CAF50',
@@ -870,7 +867,7 @@ const styles = StyleSheet.create({
     totalValue: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 20,
-        color: '#22c55e',
+        color: '#9747FF',
     },
     footer: {
         paddingHorizontal: 20, // Match item horizontal padding
@@ -881,7 +878,7 @@ const styles = StyleSheet.create({
         borderTopColor: '#f1f5f9',
     },
     checkoutButton: {
-        backgroundColor: '#22c55e', // Green color
+        backgroundColor: '#9747FF', // Green color
         paddingVertical: 14, // Adjusted padding
         borderRadius: 12, // Match other rounded elements
         alignItems: 'center',

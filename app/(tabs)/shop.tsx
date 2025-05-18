@@ -120,7 +120,7 @@ export default function ProductsScreen() {
           style={styles.categoriesContainer}
         >
           <View style={{ flexDirection: "row" }}>
-            {categories.map((category , index) => (
+            {Array.isArray(categories) && categories.length > 0 ? (categories.map((category , index) => (
              
               <TouchableOpacity key={index} style={styles.categoryCard} onPress={() => handleCategoryClick(category)} >
                 <Image
@@ -134,7 +134,9 @@ export default function ProductsScreen() {
                   </Text>
                 </View>
               </TouchableOpacity>
-            ))}
+            ))):( <Text style={{ padding: 20, color: '#94a3b8' }}>
+              No categories found.
+            </Text>)}
           </View>
         </ScrollView>
       </View>
@@ -168,7 +170,7 @@ export default function ProductsScreen() {
 
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F1F8E9" },
+  container: { flex: 1, backgroundColor: "#FAF7FF" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -237,7 +239,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc', // Match container background
+    backgroundColor: '#FAF7FF', // Match container background
   },
   loadingText: {
     marginTop: 12,

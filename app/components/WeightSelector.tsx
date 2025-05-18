@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
   },
   selectedOption: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#9747FF',
   },
   weightText: {
     fontFamily: 'Poppins_400Regular',

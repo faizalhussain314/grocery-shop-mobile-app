@@ -158,7 +158,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return displayQuantityKg <= 0 || isAddingToCart;
   }
 
-  const basePriceDisplay = product.price ? `₹${product.price.toFixed(2)} / 500g` : 'Price unavailable';
+  const basePriceDisplay = product.price ? `₹${product.price.toFixed(2)} / 1kg` : 'Price unavailable';
 
   return (
     <View style={styles.productCard}>
@@ -229,7 +229,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                                 // Disable decrement if already at 0 or adding to cart
                                 disabled={displayQuantityKg <= 0 || isAddingToCart}
                             >
-                                <Minus size={18} color={displayQuantityKg <= 0 || isAddingToCart ? '#cbd5e1' : '#475569'} />
+                                <Minus size={18} color={displayQuantityKg <= 0 || isAddingToCart ? '#E0E0E0':'#5B2B99'  } />
                             </TouchableOpacity>
 
                             <View style={styles.quantityDisplay}>
@@ -243,7 +243,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                                 activeOpacity={0.7}
                                 disabled={isAddingToCart}
                             >
-                                <Plus size={18} color={isAddingToCart ? '#cbd5e1' : '#388E3C'} />
+                                <Plus size={18} color={isAddingToCart ? '#5B2B99' : '#5B2B99'} />
                             </TouchableOpacity>
                         </View>
                     </>
@@ -290,10 +290,10 @@ const styles = StyleSheet.create({
       marginBottom: 10,
       gap: 10,
   },
-  incrementButton: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#f8fafc' },
-  incrementButtonActive: { borderColor: '#4CAF50', backgroundColor: '#C8E6C9' },
+  incrementButton: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#FAF7FF' ,  },
+  incrementButtonActive: { borderColor: '#C191FF', backgroundColor: '#C191FF', color:"#fffff" },
   incrementButtonText: { fontFamily: "Poppins_500Medium", fontSize: 13, color: '#475569' },
-  incrementButtonTextActive: { color: '#388E3C' },
+  incrementButtonTextActive: { color: '#fff' },
 
   quantitySelectorRow: {
      flexDirection: 'row',
@@ -321,11 +321,11 @@ const styles = StyleSheet.create({
      alignItems: 'center',
      justifyContent: 'center',
      paddingVertical: 10,
-     backgroundColor: '#f8fafc',
+     backgroundColor: '#FAF7FF',
    },
    quantityText: {
      fontFamily: "Poppins_600SemiBold",
-     fontSize: 16,
+     fontSize: 12,
      color: '#1e293b',
    },
    kgUnit: { // Style for the 'kg' unit
@@ -339,8 +339,8 @@ const styles = StyleSheet.create({
        borderColor: '#e2e8f0',
    },
 
-   addToCartButton: { backgroundColor: '#4CAF50', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 44 },
-   addToCartButtonDisabled: { backgroundColor: '#a5d6a7' }, // Visually indicate disabled state
+   addToCartButton: { backgroundColor: '#AC6CFF', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 44 },
+   addToCartButtonDisabled: { backgroundColor: '#F3EAFF' }, // Visually indicate disabled state
    addToCartButtonText: { fontFamily: "Poppins_600SemiBold", fontSize: 14, color: '#ffffff' }
 });
 

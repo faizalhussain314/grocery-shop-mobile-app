@@ -9,12 +9,12 @@ import { ArrowLeft, Search } from 'lucide-react-native'; // Import back icon
 import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
 
 const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? "";
-const { width } = Dimensions.get('window'); // Get screen width for responsive grid
+const { width } = Dimensions.get('window'); 
 
 export default function SubcategoryListPage() {
-    // Get parameters from the route
+  
     const params = useLocalSearchParams();
-    const categoryName = params.categoryName as string; // The name of the parent category
+    const categoryName = params.categoryName as string; 
 
     const router = useRouter();
 
@@ -41,10 +41,10 @@ export default function SubcategoryListPage() {
                 setError(null);
                 const data = await getSubcategoriesByCategoryName(categoryName);
                 setSubcategories(data);
-            } catch (err) {
+            } catch (err) { 
                 console.error(`Error fetching subcategories for ${categoryName}:`, err);
                 setError(`Failed to load subcategories for "${categoryName}".`);
-                setSubcategories([]); // Clear any previous results on error
+                setSubcategories([]); 
             } finally {
                 setIsLoading(false);
             }
@@ -123,7 +123,7 @@ export default function SubcategoryListPage() {
             {/* --- Loading State (Keep as is) --- */}
             {isLoading && (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#22c55e" />
+                    <ActivityIndicator size="large" color="#9747FF" />
                     <Text style={styles.loadingText}>Loading subcategories...</Text>
                 </View>
             )}
@@ -141,29 +141,31 @@ export default function SubcategoryListPage() {
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollViewContent} // Use new grid styles
                 >
-                    {subcategories.length === 0 ? (
-                        <Text style={styles.emptyText}>No subcategories found for "{categoryName}".</Text>
-                    ) : (
-                        subcategories.map((subcategory, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={styles.subcategoryCard} // Use new card styles
-                                onPress={() => handleProductList(subcategory)}
-                            >
-                                <Image
-                                    source={{ uri: `${BASE_URL}${subcategory.image}` }}
-                                    style={styles.subcategoryImage} // Use new image styles
-                                    resizeMode='cover' // Changed resizeMode slightly for better fit sometimes
-                                />
-                                <View style={styles.subcategoryInfo}>
-                                    <Text style={styles.subcategoryName} numberOfLines={2} ellipsizeMode="tail">
-                                        {subcategory.name}
-                                    </Text>
-                                    {/* Optional status text can be added here if needed */}
-                                </View>
-                            </TouchableOpacity>
-                        ))
-                    )}
+                    {Array.isArray(subcategories) && subcategories.length > 0 ? (
+  subcategories.map((subcategory: Subcategory, index: number) => (
+    <TouchableOpacity
+      key={index}
+      style={styles.subcategoryCard}
+      onPress={() => handleProductList(subcategory)}
+    >
+      <Image
+        source={{ uri: `${BASE_URL}${subcategory.image}` }}
+        style={styles.subcategoryImage}
+        resizeMode="cover"
+      />
+      <View style={styles.subcategoryInfo}>
+        <Text style={styles.subcategoryName} numberOfLines={2}>
+          {subcategory.name}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  ))
+) : (
+  <Text style={styles.emptyText}>
+    No subcategories found for "{categoryName}".
+  </Text>
+)}
+
                 </ScrollView>
             )}
         </View>
@@ -182,7 +184,7 @@ const verticalGap = 16;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#FAF7FF',
     },
     // --- Header styles (Keep as is) ---
      header: {

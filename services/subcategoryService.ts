@@ -1,38 +1,33 @@
-import { api } from "@/lib/axios";
-import Constants from "expo-constants";
+import { api } from '@/lib/axios';
 
-const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? ""; // Ensure BASE_URL is correctly configured
-
-// Define the interface for a Subcategory based on your sample response
 export interface Subcategory {
-    _id: string; // Or _id, depending on your backend
-    name: string;
-    category: string; // Assuming this is the parent category name
-    image: string; // Assuming this is the image path relative to BASE_URL
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-    // Add any other fields present in your API response
+  _id: string;
+  name: string;
+  category: string;
+  image: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* --- envelope --------------------------------------------------- */
+interface SubcategoryPage {
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalResults: number;
+  results: Subcategory[];
 }
 
 /**
- * Fetches subcategories filtered by category name.
- * @param categoryName The name of the parent category.
- * @returns A promise resolving to an array of Subcategory objects.
+ * Fetch sub-categories for a given category name.
  */
-export const getSubcategoriesByCategoryName = async (categoryName: string): Promise<Subcategory[]> => {
-    try {
-      
-        const response = await api.get<Subcategory[]>(`/subcategories`, {
-            params: { category: categoryName }
-        });
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching subcategories for category "${categoryName}":`, error);
-        
-        throw new Error(`Failed to fetch subcategories: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+export const getSubcategoriesByCategoryName = async (
+  categoryName: string,
+): Promise<Subcategory[]> => {
+  const { data } = await api.get<SubcategoryPage>('/subcategories', {
+    params: { category: categoryName },
+  });
+
+  return data.results;            // ← unwrap here
 };
-
-
-
