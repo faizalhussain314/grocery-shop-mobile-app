@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { Product } from "./productService";
 
 export interface BestSelling {
   _id: string;
@@ -54,14 +55,17 @@ export interface BestSelling {
 //   }
 // ];
 
-export const getBestSelling = async (): Promise<BestSelling[]> => {
-
-    try {
-        const response = await api.get('/customer/best-selling');
-        
-        return response.data;
-      } catch (error: any) {
-        console.error('Error fetching cart items:', error.response?.data || error.message);
-        throw new Error('Failed to fetch cart items');
-      }
+export const getBestSelling = async (
+  page: number = 1,
+  limit: number = 6
+): Promise<{
+  results: Product[];
+  pagination: {
+    page: number;
+    totalPages: number;
+    totalResults: number;
+  };
+}> => {
+  const res = await api.get(`/customer/best-selling?page=${page}&limit=${limit}`);
+  return res.data;
 };

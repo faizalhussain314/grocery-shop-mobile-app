@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 import { getSubcategoriesByCategoryName, Subcategory } from '@/services/subcategoryService'; // Import the new service
 import { ArrowLeft, Search } from 'lucide-react-native'; // Import back icon
 import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
+import CartIconWithBadge from '../components/CartIconWithBadge';
 
 const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? "";
 const { width } = Dimensions.get('window'); 
@@ -90,6 +91,14 @@ export default function SubcategoryListPage() {
                      onPress={openSearchOverlay}
                    >
                      <Search size={20} color="#64748b" />
+                     
+                   </TouchableOpacity>
+                    <TouchableOpacity
+                     style={styles.iconButton}
+                     onPress={openSearchOverlay}
+                   >
+                     <CartIconWithBadge />
+                     
                    </TouchableOpacity>
 
                  </View>

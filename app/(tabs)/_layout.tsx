@@ -1,93 +1,75 @@
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../store/authStore';
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { House, ShoppingBag, Logs, User, ShoppingBasket } from 'lucide-react-native';
-import { Text } from 'react-native';
-import Toast from 'react-native-toast-message';
+import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { useEffect } from 'react';
 
 export default function TabLayout() {
-  const router = useRouter();
+  const { cartCount } = useCartStore();
+ const { token, user, isLoading } = useAuthStore();
 
-  const { token, isLoading } = useAuthStore((state) => ({
-    token: state.token,
-    isLoading: state.isLoading,
-  }));
-
-  useEffect(() => {
-    if (!isLoading && !token) {
-    
-      const timeout = setTimeout(() => {
-        router.replace('/login');
-      }, 0);
-      return () => clearTimeout(timeout);
-    }
-  }, [isLoading, token]);
-
-  if (isLoading) {
-    return <Text>Loading...</Text>; // Optional fallback
+useEffect(() => {
+  if (!isLoading && (!token || !user)) {
+    // Add a slight delay to let layout finish mounting
+    setTimeout(() => {
+      router.replace('/login');
+    }, 0);
   }
+}, [isLoading, token, user]);
 
-  try {
-    return (
-      <>
-       {/* <Toast /> */}
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: '#ffffff',
-            borderTopWidth: 0,
-            elevation: 0,
-            height: 60,
-            paddingBottom: 8,
-            borderRadius:"25px",
-          },
-         
-          tabBarActiveTintColor: '#AC6CFF',
-          tabBarInactiveTintColor: '#64748b',
-        }}>
-         
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ size, color }) => <House size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="shop"
-          options={{
-            title: 'Shop',
-            tabBarIcon: ({ size, color }) => <ShoppingBag size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="favorites"
-          options={{
-            title: 'Orders',
-            tabBarIcon: ({ size, color }) => <Logs size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="cart"
-          options={{
-            title: 'Cart',
-            tabBarIcon: ({ size, color }) => <ShoppingBasket size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="account"
-          options={{
-            title: 'Account',
-            tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
-          }}
-        />
-      </Tabs>
-      </>
-    );
-  } catch (error) {
-    console.error('TabLayout error:', error);
-    return <Text>Error loading tabs</Text>;
-  }
+
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#ffffff',
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 60,
+          paddingBottom: 8,
+          borderRadius: 25,
+        },
+        tabBarActiveTintColor: '#AC6CFF',
+        tabBarInactiveTintColor: '#64748b',
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ size, color }) => <House size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="shop"
+        options={{
+          title: 'Shop',
+          tabBarIcon: ({ size, color }) => <ShoppingBag size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ size, color }) => <Logs size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: 'Cart',
+          tabBarIcon: ({ size, color }) => <ShoppingBasket size={size} color={color} />,
+          tabBarBadge: cartCount > 0 ? cartCount : undefined,
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: 'Account',
+          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+        }}
+      />
+    </Tabs>
+  );
 }

@@ -6,6 +6,7 @@ import { api } from '../lib/axios';
 interface AuthState {
   token: string | null;
   user: any | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   login: (phoneNumber: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
@@ -13,7 +14,6 @@ interface AuthState {
   checkAuth: () => Promise<void>;
 }
 
-// Platform-specific storage implementation
 const storage = {
   setItem: async (key: string, value: string): Promise<void> => {
     if (Platform.OS === 'web') {
@@ -40,76 +40,73 @@ const storage = {
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   user: null,
+  isAuthenticated: false,
   isLoading: true,
-  
-  login: async (phoneNumber, password) => {
-    set({ isLoading: true }); // Set loading state to true
-    try {
-      const response = await api.post('/auth/login', { phoneNumber, password });
-      const { token, user } = response.data;
-  
-      await storage.setItem('token', token);
-      await storage.setItem('user', JSON.stringify(user)); // Store user as string
-      console.log("user:",user);
-  
-      set({ token, user, isLoading: false }); // Set state after successful login
-    } catch (error) {
-      set({ isLoading: false });
-      throw error; // Optionally, handle error in UI
-    }
-  },
-  
+
+ login: async (phoneNumber, password) => {
+  set({ isLoading: true });
+  try {
+    const response = await api.post('/auth/login', { phoneNumber, password });
+
+    const { token, user } = response.data;
+
+    if (!token || !user) throw new Error('Invalid response');
+
+    await storage.setItem('token', token);
+    await storage.setItem('user', JSON.stringify(user));
+
+    set({ token, user, isLoading: false });
+  } catch (error: any) {
+    set({ isLoading: false });
+    throw new Error(error?.response?.data?.message || 'Login failed');
+  }
+}
+,
+
   register: async (email, password, name) => {
-    set({ isLoading: true }); // Set loading state to true
+    set({ isLoading: true });
     try {
       const response = await api.post('/auth/register', { email, password, name });
       const { token, user } = response.data;
-  
+
+     
+
       await storage.setItem('token', token);
-      await storage.setItem('user', JSON.stringify(user)); // Store user as string
-  
-      set({ token, user, isLoading: false }); // Set state after successful registration
+      await storage.setItem('user', JSON.stringify(user));
+      
+
+      set({ token, user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      set({ isLoading: false });
-      throw error; // Optionally, handle error in UI
+      set({ isAuthenticated: false, isLoading: false });
+      throw error;
     }
   },
-  
+
   logout: async () => {
     try {
-      await api.post('/auth/logout'); // optional, depending on backend
-    } catch (error) {
-      console.warn('Logout request failed (maybe expected):', error);
-    } finally {
-      await storage.removeItem('token');
-      await storage.removeItem('user');
-      set({ token: null, user: null });
-    }
+      await api.post('/auth/logout');
+    } catch (_) {}
+    await storage.removeItem('token');
+    await storage.removeItem('user');
+    set({ token: null, user: null, isAuthenticated: false });
   },
-  
+
   checkAuth: async () => {
     try {
       const token = await storage.getItem('token');
       const userStr = await storage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
-  
-      if (token && user) {
-        // Optionally, you can validate token here with an API call
-        const response = await api.post('/auth/validate-token', { token });
-        if (response.data.valid) {
-          set({ token, user, isLoading: false });
-        } else {
-          await storage.removeItem('token');
-          await storage.removeItem('user');
-          set({ token: null, user: null, isLoading: false });
-        }
-      } else {
-        set({ isLoading: false });
-      }
-    } catch (error) {
-      set({ isLoading: false });
-      // console.error('Auth check error:', error);
-    }
-  },
-}));
 
+      if (!token || !user) {
+        await storage.removeItem('token');
+        await storage.removeItem('user');
+        set({ token: null, user: null, isAuthenticated: false, isLoading: false });
+        return;
+      }
+
+      set({ token, user, isAuthenticated: true, isLoading: false });
+    } catch (_) {
+      set({ token: null, user: null, isAuthenticated: false, isLoading: false });
+    }
+  }
+}));

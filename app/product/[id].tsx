@@ -292,7 +292,7 @@ export default function ProductScreen() {
         </View>
 
         <Image
-          source={{ uri: `${BASE_URL}${product.image}` }}
+          source={{ uri: `${product.image}` }}
           style={styles.productImage}
         />
   

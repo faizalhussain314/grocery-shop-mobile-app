@@ -17,6 +17,8 @@ import { Plus, Minus } from 'lucide-react-native';
 import { useDispatch } from 'react-redux';
 import Toast from 'react-native-toast-message';
 import { addItemToCartThunk } from '@/thunks/cartActions'; // Example path
+import { useCartStore } from '@/store/cartStore';
+
 
 interface ProductCardProps {
   product: Product;
@@ -35,6 +37,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
   product,
 }) => {
   const dispatch = useDispatch();
+// const { cartCount, setCartCount } = useCartStore();
+
+const cartProductIds = useCartStore((state) => state.cartProductIds);
+const addToCart = useCartStore((state) => state.addToCart);
+const removeFromCart = useCartStore((state) => state.removeFromCart);
+
+
+const isInCart = cartProductIds.includes(product._id);
+
+
 
   // --- State Variables ---
   const [showControls, setShowControls] = useState<boolean>(false);
@@ -42,6 +54,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [is250gSelected, setIs250gSelected] = useState<boolean>(false);
   const [is500gSelected, setIs500gSelected] = useState<boolean>(false);
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
+  const [isRecentlyAdded, setIsRecentlyAdded] = useState<boolean>(false);
+
 
   // --- Button Handlers ---
 
@@ -101,7 +115,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
 
-    // Subsequent clicks: Add to cart if quantity > 0
+    
     const quantityInGrams = Math.round(displayQuantityKg * 1000); // Convert KG to grams
 
     if (quantityInGrams <= 0 || !product || isAddingToCart) {
@@ -122,12 +136,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
         text2: `${product.name} (${formatKg(displayQuantityKg)}kg) added!`,
         visibilityTime: 2000,
       });
+      addToCart(product._id); // Update cartProductIds in Zustand
+setIsRecentlyAdded(true);
+
+      
+
       
       console.log("try block successfully run")
        setShowControls(false);
        setDisplayQuantityKg(0);
        setIs250gSelected(false);
        setIs500gSelected(false);
+       setIsRecentlyAdded(true);
+// setTimeout(() => setIsRecentlyAdded(false), 2000); // Reset after 2 seconds (or longer)
     } catch (error) {
       console.error("Add to cart error:", error)
       Toast.show({
@@ -141,17 +162,24 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   // Determine button text and disabled state
-  const getButtonText = () => {
-    if (!showControls) return "Add";
-    if (isAddingToCart) return ""; // Loader shown instead
+const getButtonText = () => {
+  if (!showControls) return isInCart ? "Added" : "Add";
+  if (isAddingToCart) return "";
+  if (displayQuantityKg <= 0) return "Add Quantity";
+  return "Add to Cart";
+};
 
-    // Format KG for display, handle 0 case
-    const formattedKg = displayQuantityKg > 0 ? formatKg(displayQuantityKg) : '0';
-    if (displayQuantityKg <= 0) {
-        return "Add Quantity"; // Prompt user if 0
-    }
-    return `Add to Cart `;
-  };
+
+useEffect(() => {
+  if (!isInCart && isRecentlyAdded) {
+    setIsRecentlyAdded(false); // Reset back to "Add"
+  }
+}, [isInCart]);
+
+
+
+
+  
 
   const isAddToCartButtonDisabled = () => {
       if (!showControls) return false; // Initial 'Add' is enabled

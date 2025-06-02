@@ -36,52 +36,67 @@ export default function LoginScreen() {
     return null;
   }
 
-  const handleLogin = async () => {
-    setIsLoading(true);
-  
+ const handleLogin = async (event: any) => {
+  event.preventDefault();
+  setError('');
+
+  if (!phoneNumber || !password) {
+    setError('Please enter both mobile number and password.');
     Toast.show({
-      type: 'info',
-      text1: 'Logging in...',
+      type: 'error',
+      text1: 'Missing Fields',
+      text2: 'Mobile number and password are required.',
     });
-  
-    try {
-      await login(phoneNumber, password);
-  
-      // Assuming the 'login' function stores the customer ID or token in SecureStore
-      const customerId = await SecureStore.getItemAsync('customerId');
-      if (customerId) {
-        console.log("Customer ID: from login page", customerId);
-      }
-  
-      Toast.hide();
-      Toast.show({
-        type: 'success',
-        text1: 'Login Successful',
-        text2: 'Welcome back 👋',
-      });
-  
-      // Replace the route with the correct path to the tabs screen
-      router.replace('/(tabs)');
-    } catch (err) {
-      Toast.hide();
-  
-      // Log the error for debugging
-      console.error("Login error:", err);
-  
-      // If the error contains a message, show it in the toast
-      const errorMessage = err instanceof Error ? err.message : 'Invalid credentials';
-  
-      setError(errorMessage);  // If you have a setError method for managing error state
-  
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
+    return;
+  }
+
+  setIsLoading(true);
+
+  Toast.show({
+    type: 'info',
+    text1: 'Logging in...',
+  });
+
+  try {
+    await login(phoneNumber, password); // this will throw on failure
+
+    Toast.hide();
+    Toast.show({
+      type: 'success',
+      text1: 'Login Successful',
+      text2: 'Welcome back 👋',
+    });
+
+
+    // router.replace('/(tabs)');
+  } catch (err: any) {
+    Toast.hide();
+
+    let errorMessage = 'Something went wrong. Please try again.';
+
+    if (err?.response?.status === 401 || err?.response?.status === 403) {
+      errorMessage = 'Invalid phone number or password.';
+     
+    } else if (err?.response?.status >= 500) {
+      errorMessage = 'An error occurred on our end. Please try again later.';
+    
+    } else if (err?.message) {
+      errorMessage = err.message;
+      
     }
-  };
+
+    setError(errorMessage);
+
+    Toast.show({
+      type: 'error',
+      text1: 'Login Failed',
+      text2: errorMessage,
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   
 
   return (
@@ -99,14 +114,14 @@ export default function LoginScreen() {
         {/* <Text style={styles.title}>Welcome Back</Text> */}
         <Text style={styles.subtitle}>Sign in to continue</Text>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+       
 
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Mobile Number"
             value={phoneNumber}
-            onChangeText={setMobileNumber}
+            onChangeText={(text) => setMobileNumber(text.trim())}
             keyboardType="phone-pad"
             maxLength={10}
           />
@@ -117,15 +132,19 @@ export default function LoginScreen() {
             style={styles.input}
             placeholder="Password"
             value={password}
-            onChangeText={setPassword}
+           onChangeText={(text) => setPassword(text.trim())}
             secureTextEntry
           />
         </View>
+        {error && <Text style={styles.error}>{error}</Text>}
+
 
         <TouchableOpacity
           style={[styles.loginButton, isLoading && { opacity: 0.7 }]}
           onPress={handleLogin}
-          disabled={isLoading}
+          disabled={isLoading || !phoneNumber || !password}
+
+          
         >
           {isLoading ? (
             <ActivityIndicator color="#ffffff" />

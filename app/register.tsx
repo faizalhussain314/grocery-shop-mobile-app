@@ -1,16 +1,31 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from '@expo-google-fonts/poppins';
 import { useState } from 'react';
-import { Link, router } from 'expo-router';
-import { useAuthStore } from '../store/authStore';
+import { Link } from 'expo-router';
+import { submitContactForm } from '../services/contactService';
 
-export default function RegisterScreen() {
+export default function ContactSupportScreen() {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [address , setAddress] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [address, setAddress] = useState('');
   const [error, setError] = useState('');
-  const register = useAuthStore((state) => state.register);
+  const [loading, setLoading] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -18,33 +33,47 @@ export default function RegisterScreen() {
     Poppins_600SemiBold,
   });
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
-  const handleRegister = async () => {
+  const handleSubmit = async () => {
+    if (!name || !mobile || !address) {
+      setError('All fields are required');
+      return;
+    }
+  
     try {
-      await register(email, password, name , );
-      router.replace('/(tabs)');
+      setLoading(true);
+      setError('');
+      await submitContactForm({ name, mobile, address });
+      setSuccessVisible(true);
+      setName('');
+      setMobile('');
+      setAddress('');
     } catch (err) {
-      setError('Registration failed');
+      console.error(err);
+      setError('Submission failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
+  
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1604147706283-d7119b5b822c?q=80&w=1000' }}
+          source={{
+            uri: 'https://images.unsplash.com/photo-1604147706283-d7119b5b822c?q=80&w=1000',
+          }}
           style={styles.headerImage}
         />
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.title}>Contact Us</Text>
-        <Text style={styles.subtitle}>For Creating New Account Kindly Reach Out</Text>
+        <Text style={styles.title}>Contact Support</Text>
+        <Text style={styles.subtitle}>We’re here to help. Please fill out the form below.</Text>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -59,44 +88,53 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="Mobile Number"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
+            value={mobile}
+            onChangeText={setMobile}
             keyboardType="phone-pad"
           />
         </View>
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Address"
             value={address}
             onChangeText={setAddress}
-            autoCapitalize="none"
-            keyboardType="phone-pad"
+            multiline
+            numberOfLines={3}
           />
         </View>
 
-        {/* <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View> */}
-
-        <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-          <Text style={styles.registerButtonText}>Submit</Text>
+        <TouchableOpacity style={styles.registerButton} onPress={handleSubmit} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.registerButtonText}>Submit</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
+          <Text style={styles.footerText}>Need to sign in? </Text>
           <Link href="/login" style={styles.loginLink}>
-            <Text style={styles.loginText}>Sign In</Text>
+            <Text style={styles.loginText}>Go to Login</Text>
           </Link>
         </View>
       </View>
+      {successVisible && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Success!</Text>
+      <Text style={styles.modalMessage}>Your contact request has been submitted.</Text>
+      <TouchableOpacity
+        style={styles.modalButton}
+        onPress={() => setSuccessVisible(false)}
+      >
+        <Text style={styles.modalButtonText}>OK</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+
     </View>
   );
 }
@@ -184,4 +222,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9747FF',
   },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 20,
+    color: '#22c55e',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 16,
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalButton: {
+    backgroundColor: '#9747FF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  modalButtonText: {
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#fff',
+    fontSize: 16,
+  },
+  
 });

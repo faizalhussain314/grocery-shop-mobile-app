@@ -5,10 +5,11 @@
     "version": "1.0.0",
     "android": {
       "package": "com.quantumcraft.ktruck",
-      "versionCode": 1
+      "versionCode": 1 ,
+       "jsEngine": "hermes"
     },
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon.jpeg",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

@@ -22,6 +22,7 @@ import { Link, useRouter } from "expo-router";
 import ProductCard from "../components/ProductCard"; 
 import GlobalSearchOverlay from "../components/GlobalSearchOverlay"; 
 import Toast from "react-native-toast-message";
+import CartIconWithBadge from "../components/CartIconWithBadge";
 
 export default function ProductsScreen() {
   const [fontsLoaded] = useFonts({
@@ -32,32 +33,39 @@ export default function ProductsScreen() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? "";
   const [isLoading, setIsLoading] = useState(true);
  
   const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
+  const ITEMS_PER_PAGE = 10; 
+
+const [page, setPage] = useState(1);
+const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
+
+
    const router = useRouter(); 
 
 
-  useEffect(() => {
+   useEffect(() => {
     const fetchData = async () => {
       try {
         const [categoryData, productData] = await Promise.all([
           getCategories(),
           getProducts(),
         ]);
-
+  
         setCategories(categoryData);
         setProducts(productData);
+        setVisibleProducts(productData.slice(0, ITEMS_PER_PAGE));
       } catch (error) {
         console.error("Failed to load data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
+  
     fetchData();
   }, []);
+  
 
 
   const openSearchOverlay = () => {
@@ -78,6 +86,16 @@ export default function ProductsScreen() {
     });
   };
 
+  const loadMoreProducts = () => {
+    const nextPage = page + 1;
+    const start = (nextPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const moreProducts = products.slice(start, end);
+  
+    setVisibleProducts(prev => [...prev, ...moreProducts]);
+    setPage(nextPage);
+  };
+  
 
   if (!fontsLoaded || isLoading) {
     return (
@@ -107,13 +125,17 @@ export default function ProductsScreen() {
             <Search size={20} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-          <Link href={"/cart"} > <ShoppingCart size={20} color="#64748b" /></Link>
+         <CartIconWithBadge />
           </TouchableOpacity>
         </View>
       </View>
+     
 
       <View style={styles.categoriesSection}>
+        
+
         <Text style={styles.sectionTitle}>Categories</Text>
+         <Text style={styles.marketNote}>Prices may vary depending on market demand</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -145,7 +167,7 @@ export default function ProductsScreen() {
         <Text style={styles.sectionTitle}>All Products</Text>
         <View style={styles.productsGrid}>
           {Array.isArray(products) && products.length > 0 ? (
-            products.map((product , index) => (
+            visibleProducts.map((product , index) => (
               <ProductCard
                 key={index} 
                 product={product}
@@ -155,7 +177,15 @@ export default function ProductsScreen() {
             <Text style={{ padding: 20, color: "#94a3b8" }}>No products found.  </Text>
           )}
         </View>
+
+        {visibleProducts.length < products.length && (
+  <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreProducts}>
+    <Text style={styles.loadMoreText}>Load More</Text>
+  </TouchableOpacity>
+)}
       </View>
+
+     
 
      
       <GlobalSearchOverlay
@@ -194,6 +224,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     borderRadius: 12,
   },
+  marketNote: {
+  fontFamily: 'Poppins_400Regular',
+  fontSize: 13,
+  color: '#64748b',
+  paddingHorizontal: 20,
+  marginBottom: 12,
+},
+
   categoriesSection: { paddingTop: 24 },
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
@@ -247,4 +285,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#94a3b8', 
   },
+  loadMoreButton: {
+    alignSelf: 'center',
+    backgroundColor: '#AC6CFF',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  loadMoreText: {
+    color: '#fff',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+  },
+  
 });

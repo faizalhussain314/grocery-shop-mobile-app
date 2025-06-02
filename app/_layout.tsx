@@ -1,52 +1,41 @@
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Stack, Slot, usePathname, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useAuthStore } from '../store/authStore';
 import Toast from 'react-native-toast-message';
-import { router, usePathname } from 'expo-router';
-import store from '@/store/store';
 import { Provider } from 'react-redux';
-import { View } from 'lucide-react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import store from '@/store/store';
 
 export default function RootLayout() {
-  useFrameworkReady();
   const checkAuth = useAuthStore((state) => state.checkAuth);
-  const isLoading = useAuthStore((state) => state.isLoading);
-  const user = useAuthStore((state) => state.user);
+  const { token, user } = useAuthStore();
   const pathname = usePathname();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    checkAuth();
+    checkAuth().finally(() => setReady(true));
   }, []);
 
   useEffect(() => {
-    if (user && (pathname === '/login' || pathname === '/register')) {
+    if (
+      ready &&
+      token &&
+      user &&
+      (pathname === '/login' || pathname === '/register')
+    ) {
       router.replace('/(tabs)');
     }
-  }, [user, pathname]);
-
-  if (isLoading) {
-    return null;
-  }
+  }, [ready, token, user, pathname]);
 
   return (
-    <>
-      <Toast />
-     <Provider store={store}>
-   
-      <Stack screenOptions={{ headerShown: false }}>
-    
-     
-     
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
-      </Stack>
-      
-      <StatusBar style="auto" />
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <Toast />
+        <StatusBar style="auto" />
+        <Slot />
       </Provider>
-    </>
+    </SafeAreaProvider>
   );
 }
+

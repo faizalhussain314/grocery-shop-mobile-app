@@ -22,20 +22,21 @@ interface ApiSearchProduct {
 }
 
 // Updated search function with mapping
-export const searchProductsByName = async (name: string): Promise<Product[]> => {
-  if (!name.trim()) {
-    return [];
-  }
+export const searchProductsByName = async (
+  name: string,
+  page = 1,
+  limit = 10
+): Promise<{ results: Product[]; hasMore: boolean }> => {
+  if (!name.trim()) return { results: [], hasMore: false };
+
   try {
-    const response = await api.get<ApiSearchProduct[]>( // Expecting the raw API type
-      `/customer/products?name=${encodeURIComponent(name)}`
-    );
+    const response = await api.get(`/customer/products`, {
+      params: { name, page, limit },
+    });
 
-    const rawResults = response.data || [];
+    const rawResults: ApiSearchProduct[] = response.data.results || [];
 
-    // Map the raw results (_id) to the application's Product type (_id)
-    const mappedResults: Product[] = rawResults.map((apiProduct) => ({
-      // Map _id from API response to _id in the Product type
+    const mappedResults: Product[] = rawResults.map(apiProduct => ({
       _id: apiProduct._id,
       name: apiProduct.name,
       category: apiProduct.category,
@@ -48,14 +49,14 @@ export const searchProductsByName = async (name: string): Promise<Product[]> => 
       subcategory: apiProduct.subcategory,
       createdAt: apiProduct.createdAt,
       updatedAt: apiProduct.updatedAt,
-      // Make sure ALL properties required by your Product interface are included here
-      // For example, if Product also requires 'imageUrl', you'd need to map that.
     }));
 
-    return mappedResults; // Return the array conforming to the Product type (with '_id')
+    const hasMore = response.data.hasMore ?? (rawResults.length === limit);
+
+    return { results: mappedResults, hasMore };
 
   } catch (error) {
     console.error("Error searching products:", error);
-    throw error; // Re-throw or handle as needed
+    throw error;
   }
 };

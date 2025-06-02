@@ -44,6 +44,8 @@ import { Alert } from 'react-native';
     const [showPicker, setShowPicker] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 const [showSuccess, setShowSuccess] = useState(false); 
+const isChangeAddress = queryType === 'Change Address';
+
     
   
     if (!fontsLoaded) return null;
@@ -75,33 +77,44 @@ const [showSuccess, setShowSuccess] = useState(false);
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         {/* ---------- HEADER ---------- */}
         <View style={styles.header}>
-          <Text style={styles.title}>Help Center</Text>
+        <Text style={styles.title}>
+  {isChangeAddress ? 'Change Delivery Address' : 'Help Center'}
+</Text>
+
         </View>
   
         {/* ---------- CARD ---------- */}
         <View style={styles.card}>
           {/* --- Query Type Picker --- */}
-          <Text style={styles.label}>What’s the issue?</Text>
-  
-          <Pressable
-            style={styles.pickerButton}
-            onPress={() => setShowPicker(true)}
-          >
-            <Text style={queryType ? styles.pickerText : styles.placeholderText}>
-              {queryType || 'Select an option'}
-            </Text>
-            <ChevronDown size={18} color="#64748b" />
-          </Pressable>
+          {!isChangeAddress && (
+  <>
+    <Text style={styles.label}>What’s the issue?</Text>
+    <Pressable
+      style={styles.pickerButton}
+      onPress={() => setShowPicker(true)}
+    >
+      <Text style={queryType ? styles.pickerText : styles.placeholderText}>
+        {queryType || 'Select an option'}
+      </Text>
+      <ChevronDown size={18} color="#64748b" />
+    </Pressable>
+  </>
+)}
+
   
           {/* --- Detail Message --- */}
-          <Text style={[styles.label, { marginTop: 20 }]}>Detailed message</Text>
+          <Text style={[styles.label, { marginTop: 20 }]}> {isChangeAddress ? 'New Address Details' : 'Detailed message'}</Text>
   
           <TextInput
             style={styles.textArea}
             multiline
             value={message}
             onChangeText={setMessage}
-            placeholder="Tell us more so we can help you quickly..."
+            placeholder={
+              isChangeAddress
+                ? 'Please enter your new delivery address...'
+                : 'Tell us more so we can help you quickly...'
+            }
             placeholderTextColor="#94a3b8"
           />
   
@@ -115,7 +128,7 @@ const [showSuccess, setShowSuccess] = useState(false);
             onPress={handleSubmit}
           >
             <Send size={18} color="#fff" />
-            <Text style={styles.submitText}>Send</Text>
+            <Text style={styles.submitText}> {isChangeAddress ? 'Request Address Change' : 'Send'}</Text>
           </TouchableOpacity>
         </View>
   
@@ -130,10 +143,15 @@ const [showSuccess, setShowSuccess] = useState(false);
       </View>
 
       {/* text */}
-      <Text style={styles.successTitle}>Submitted!</Text>
-      <Text style={styles.successSubtitle}>
-        Your query has been received. Our customer executive will contact you shortly.
-      </Text>
+      <Text style={styles.successTitle}>
+  {isChangeAddress ? 'Address Change Requested!' : 'Submitted!'}
+</Text>
+<Text style={styles.successSubtitle}>
+  {isChangeAddress
+    ? 'Your new delivery address has been submitted. Our team will update it shortly.'
+    : 'Your query has been received. Our customer executive will contact you shortly.'}
+</Text>
+
     </View>
   </View>
 </Modal>

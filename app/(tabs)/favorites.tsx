@@ -40,12 +40,35 @@ export default function OrdersScreen() {
   });
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [refreshing, setRefreshing] = useState(false); // ✅ new state
+
+const fetchOrders = async () => {
+  try {
+    const data = await getOrders();
+    setOrders(data);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleRefresh = async () => {
+  setRefreshing(true); // ✅ start spinner
+  await fetchOrders(); // ✅ re-fetch orders
+  setRefreshing(false); // ✅ stop spinner
+};
+
+useEffect(() => {
+  fetchOrders(); // ✅ initial fetch
+}, []);
+
+
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const data = await getOrders();
         setOrders(data);
+        console.log("data",data[0].items)
       } catch (error) {
         console.error(error);
       }
@@ -115,6 +138,8 @@ export default function OrdersScreen() {
             </View>
           </TouchableOpacity>
         )}
+        refreshing={refreshing}       // ✅ this shows the spinner
+  onRefresh={handleRefresh} 
       />
     </View>
   );

@@ -28,6 +28,12 @@ const ProductBySubCat = () => {
     const [products, setProducts] = useState<Product[]>([]);
 
     const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
+    
+const [page, setPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+const ITEMS_PER_PAGE = 10;
+
+
 
     const router = useRouter();
 
@@ -40,34 +46,35 @@ const ProductBySubCat = () => {
 
     useEffect(() => {
         const fetchProduct = async () => {
-            if (!subCategory) {
-                setError('Subcategory ID is missing.');
-                setIsLoading(false);
-                return;
-            }
-
-            try {
-                setIsLoading(true);
-                setError(null);
-                const data = await getProductsBySubCat(subCategory);
-
-                if (Array.isArray(data)) {
-                    setProducts(data);
-                } else {
-                    setProducts([]);
-                    setError('Invalid response data.');
-                }
-            } catch (err) {
-                console.error(`Error fetching products for subcategory ${subCategory}:`, err);
-                setError('Failed to load products.');
-                setProducts([]);
-            } finally {
-                setIsLoading(false);
-            }
+          if (!subCategory) {
+            setError('Subcategory ID is missing.');
+            setIsLoading(false);
+            return;
+          }
+      
+          try {
+            setIsLoading(true);
+            setError(null);
+      
+            setProducts([]);
+            setPage(1);
+      
+            const { results, totalPages } = await getProductsBySubCat(subCategory, 1, ITEMS_PER_PAGE);
+      
+            setProducts(results);
+            setTotalPages(totalPages);
+          } catch (err) {
+            console.error(`Error fetching products for subcategory ${subCategory}:`, err);
+            setError('Failed to load products.');
+          } finally {
+            setIsLoading(false);
+          }
         };
-
+      
         fetchProduct();
-    }, [subCategory]);
+      }, [subCategory]);
+      
+    
 
     const closeSearchOverlay = () => {
         setIsSearchOverlayVisible(false);
@@ -76,6 +83,26 @@ const ProductBySubCat = () => {
     const openSearchOverlay = () => {
         setIsSearchOverlayVisible(true);
     };
+
+    const loadMoreProducts = async () => {
+        const nextPage = page + 1;
+        if (nextPage > totalPages) return;
+      
+        try {
+          setIsLoading(true);
+      
+          const { results } = await getProductsBySubCat(subCategory, nextPage, ITEMS_PER_PAGE);
+      
+          setProducts(prev => [...prev, ...results]);
+          setPage(nextPage);
+        } catch (err) {
+          console.error('Error loading more products:', err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      
 
     // const handleProductList = () => { // This function seems unused
     //     // Your navigation logic if necessary
@@ -155,18 +182,32 @@ const ProductBySubCat = () => {
             )}
 
             {!isLoading && !error && (
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
-                    {products.length === 0 ? (
-                        <Text style={styles.emptyText}>No products found for this subcategory.</Text>
-                    ) : (
-                        products.map((product) => ( 
-                          
-                                <ProductCard product={product} key={product._id } />
-                           
-                        ))
-                    )}
-                </ScrollView>
+              <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+              {products.length === 0 ? (
+                <Text style={styles.emptyText}>No products found for this subcategory.</Text>
+              ) : (
+                <>
+                  {products.map((product) => (
+                    <ProductCard product={product} key={product._id} />
+                  ))}
+            
+            {page < totalPages && (
+  <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreProducts}>
+    <Text style={styles.loadMoreText}>Load More</Text>
+  </TouchableOpacity>
+)}
+
+                </>
+              )}
+            </ScrollView>
+            
             )}
+            {products.length < products.length && (
+  <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreProducts}>
+    <Text style={styles.loadMoreText}>Load More</Text>
+  </TouchableOpacity>
+)}
+
         </View>
     );
 };
@@ -245,6 +286,21 @@ const styles = StyleSheet.create({
         marginTop: 50,
         width: '100%', // Ensure it takes full width if it's the only item
     },
+    loadMoreButton: {
+        alignSelf: 'center',
+        backgroundColor: '#AC6CFF',
+        paddingVertical: 10,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        marginTop: 20,
+        marginBottom: 40,
+      },
+      loadMoreText: {
+        color: '#fff',
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 14,
+      },
+      
 });
 
 export default ProductBySubCat;

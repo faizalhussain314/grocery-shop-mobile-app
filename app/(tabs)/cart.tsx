@@ -8,6 +8,7 @@ import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useFocusEffect } from '@react-navigation/native';
+import { useCartStore } from '@/store/cartStore';
 
 
 const formatKg = (kg: number): string => {
@@ -72,8 +73,11 @@ export default function CartScreen() {
     const [expandedItemId, setExpandedItemId] = useState<string | null>(null); 
 
     const router = useRouter();
+   const cartProductIds = useCartStore((state) => state.cartProductIds);
+const addToCart = useCartStore((state) => state.addToCart);
+const removeFromCart = useCartStore((state) => state.removeFromCart);
 
-    const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL;
+   
    
     const [isFetching, setIsFetching] = useState(true); 
     const [refreshing, setRefreshing] = useState(false);
@@ -83,31 +87,44 @@ export default function CartScreen() {
         Poppins_500Medium,
         Poppins_600SemiBold,
     });
+    const { setCartCount, setCartProducts } = useCartStore();
 
+    
+
+    
    
 
 
     const fetchCartItems = useCallback(async (isRefresh = false) => {
-        // Don't show full screen loader on pull-to-refresh, only on initial load
-        if (!isRefresh) {
-            setIsFetching(true);
-        }
+        if (!isRefresh) setIsFetching(true);
+    
         try {
             const data: CartItem[] = await getCartItems();
-            const processedItems: CartItemWithDisplay[] = data.map(item => {
+    
+            // Filter out any items with null productId
+            const validItems = data.filter(item => item.productId !== null);
+    
+            const processedItems: CartItemWithDisplay[] = validItems.map(item => {
                 const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
                 const initialDisplayQuantity = isWeightUnit
                     ? item.quantity / 1000
                     : item.quantity;
-
+    
                 return {
                     ...item,
                     displayQuantity: parseFloat(initialDisplayQuantity.toFixed(3)),
-                    is250gSelected: false, // Reset selection state on fetch
+                    is250gSelected: false,
                     is500gSelected: false,
                 };
             });
+    
             setItems(processedItems);
+
+            const productIds = processedItems.map(item => item.productId._id);
+setCartProducts(productIds);
+
+            console.log("processedItems.length",processedItems.length)
+             setCartCount(processedItems.length);
         } catch (error) {
             console.error('Failed to fetch cart items:', error);
             Toast.show({
@@ -115,15 +132,12 @@ export default function CartScreen() {
                 text1: 'Error',
                 text2: 'Failed to load cart items',
             });
-           
         } finally {
-          
             setIsFetching(false);
-            if (isRefresh) {
-                setRefreshing(false); 
-            }
+            if (isRefresh) setRefreshing(false);
         }
     }, []);
+    
 
     useFocusEffect(
         useCallback(() => {
@@ -225,10 +239,11 @@ export default function CartScreen() {
 
     const handleRemoveItem = async  (id: string) => {
     
-
+ const itemToRemove = items.find(item => item._id === id);
+    if (!itemToRemove) return;
         
         setItems(currentItems => currentItems.filter(item => item._id !== id));
-
+const productId = itemToRemove.productId._id;
 
          try {
 
@@ -236,15 +251,19 @@ export default function CartScreen() {
       await deleteCartItem(id); 
       console.log(`Successfully deleted cart item: ${id} from backend.`);
 
-      setItems(currentItems => {
-          console.log(`Removing item ${id} from local state.`);
-          return currentItems.filter(item => item._id !== id);
-      });
+      setItems(prevItems => {
+    const updatedItems = prevItems.filter(item => item._id !== id);
+    
+    return updatedItems;
+});
+
 
      
       if (expandedItemId === id) {
           setExpandedItemId(null);
       }
+      removeFromCart(productId);
+
 
       Toast.show({
           type: 'success',
@@ -299,16 +318,17 @@ export default function CartScreen() {
 
     // --- Checkout Logic ---
     const handleCheckout = async () => {
-        console.log('Checkout process started');
+       
+
         try {
             setIsLoading(true);
-            console.log('Loading state set to true');
+            
 
             // Retrieve customer ID
             const userString = await SecureStore.getItemAsync('user');
             const user = userString ? JSON.parse(userString) : null;
             const customerId = user?.id;
-            console.log('Retrieved customerId:', customerId);
+           
 
             if (!customerId) {
                 console.error("Customer is not authenticated");
@@ -354,10 +374,9 @@ export default function CartScreen() {
            
             const totalPrice = calculateTotal();
 
-            // Call the createOrder function
-            console.log("order items", orderItems);
+           
             const orderResponse: OrderResponse = await createOrder(orderItems, totalPrice);
-            console.log('Order created successfully');
+           
 
             // Show success toast message
             Toast.show({
@@ -369,7 +388,7 @@ export default function CartScreen() {
             // Clear cart locally and navigate
             setItems([]); // Clear local cart state after successful order
             router.push({ pathname: '/thank-you', params: { orderId: orderResponse.orderId } });
-            console.log('Navigated to thank you page');
+            
 
         } catch (error: unknown) {
             if (error instanceof Error) {
@@ -389,13 +408,16 @@ export default function CartScreen() {
             }
         } finally {
             setIsLoading(false);
-            console.log('Loading state set to false');
+           
         }
     };
+     useEffect(() => {
+  setCartCount(items.length);
+}, [items]);
 
 
     if (!fontsLoaded) {
-        return null; // Or a loading spinner
+        return null; 
     }
 
     if (isFetching && !refreshing) { // Show only on initial load, not during pull-to-refresh
@@ -408,15 +430,17 @@ export default function CartScreen() {
     }
     const total = calculateTotal();
 
+   
+
     return (
         <View style={styles.container}>
             <ScrollView style={styles.scrollView}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Cart</Text>
                   
-                    <TouchableOpacity style={styles.iconButton}>
+                    {/* <TouchableOpacity style={styles.iconButton}>
                         <Share2 size={20} color="#64748b" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                 </View>
 
                 <View style={styles.searchContainer}>
@@ -465,7 +489,7 @@ export default function CartScreen() {
                                           
                                             <View style={styles.expandedQuantityControls}>
                                                  {/* 250g/500g buttons (only for weight units) */}
-                                                 {(item.productId.unit === 'kg' || item.productId.unit === 'g') && (
+                                                 {(item?.productId?.unit === 'kg' || item?.productId?.unit === 'g') && (
                                                     <View style={styles.incrementSelectorRow}>
                                                         {/* 250g Button with Icon */}
                                                         <TouchableOpacity
@@ -517,7 +541,7 @@ export default function CartScreen() {
                                                         onPress={() => setExpandedItemId(null)} 
                                                     >
                                                         <Text style={styles.quantityText}>
-  {item.productId.unit === 'piece'
+  {item?.productId?.unit === 'piece'
     ? item.displayQuantity || 0 
     : `${formatKg(item.displayQuantity || 0)}`} 
 </Text>

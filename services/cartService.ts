@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import * as SecureStore from 'expo-secure-store';
+
 
 export interface CartItem {
   id: string;
@@ -17,7 +17,7 @@ export interface CartItem {
 export const getCartItems = async () => {
   try {
     const response = await api.get('/customer/cart');
-    console.log("cart times",response.data)
+    
     return response.data;
   } catch (error: any) {
     console.error('Error fetching cart items:', error.response?.data || error.message);
@@ -27,9 +27,9 @@ export const getCartItems = async () => {
 
 // Add an item to the cart
 export const addToCart = async (productId: string, quantity: string) => {
+
+
   try {
-  
-   console.log("productId", productId);
     const payload = {
       productId:productId,
       quantity: parseInt(quantity),
@@ -47,8 +47,8 @@ export const createOrder = async (items: Array<{ productId: string; quantity: nu
   try {
     const payload = {
       items: items.map(item => ({
-        productId: item.productId,  // Extract the productId directly
-        quantity: item.quantity      // Quantity as is
+        productId: item.productId,  
+        quantity: item.quantity     
       })),
      
     };

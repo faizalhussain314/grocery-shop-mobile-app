@@ -33,10 +33,18 @@ interface ProfileData {
 
 // Define the structure for the form data state
 interface FormData {
-  phoneNumber: string;
   name: string;
   address: string;
+  phoneNumber: string; // ← New number
+  newNumber:string;
 }
+
+interface OriginalData {
+  name: string;
+  address: string;
+  phoneNumber: string; // ← Old number
+}
+
 
 // Define the structure for the change request payload
 interface ProfileChangeRequestPayload {
@@ -66,10 +74,16 @@ export default function EditProfileScreen(): React.JSX.Element | null {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>({
     phoneNumber: '',
+    newNumber:'',
     name: '',
     address: '',
   });
-  const [originalData, setOriginalData] = useState<ProfileData | null>(null); // Store original fetched data
+  const [originalData, setOriginalData] = useState<ProfileData | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+const [modalMessage, setModalMessage] = useState('');
+const [newNumber, setnewNumber] = useState('');
+
+// Store original fetched data
   const [error, setError] = useState<string | null>(null);
 
   
@@ -77,34 +91,43 @@ export default function EditProfileScreen(): React.JSX.Element | null {
  
 
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
       setIsLoading(true);
-      setError(null);
-      try {
-        const response = await api.get('/auth/profile');
-        const fetchedData = response.data;
-        console.log("auth/profile",response.data  )
-        setOriginalData(fetchedData); // Store original data
-        setFormData({
-          phoneNumber: fetchedData.phoneNumber || '',
-          name: fetchedData.name || "",
-          address: fetchedData.address || '',
-        });
-      } catch (err) {
-        console.error('Failed to load profile for editing:', err);
-        let message = 'Failed to load profile data. Please try again.';
-        if (err instanceof AxiosError && err.response?.data?.message) {
-          message = err.response.data.message;
-        }
-        setError(message);
-        Alert.alert('Error', message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
+      const res = await api.get('/auth/profile');
+     const user = res.data.user;
+
+const original: ProfileData = {
+  name: user.name ?? '',
+  address: user.address ?? '',
+  phoneNumber: user.phoneNumber ?? '',
+  role: user.role ?? '',
+  isActive: user.isActive ?? false,
+};
+
+setOriginalData(original);
+
+
+
+
+      setFormData({
+        name: user.name ?? '',
+        address: user.address ?? '',
+        phoneNumber: user.phoneNumber ?? '', // Starts as old, user edits
+        newNumber:''
+      });
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Failed to load your profile.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchProfile();
+}, []);
+
 
   const handleInputChange = (name: keyof FormData, value: string) => {
     setFormData((prevData) => ({
@@ -113,67 +136,56 @@ export default function EditProfileScreen(): React.JSX.Element | null {
     }));
   };
 
-  const handleSubmitChangeRequest = async () => {
-    setIsSubmitting(true);
-    setError(null);
+ const handleSubmitChangeRequest = async () => {
+  setIsSubmitting(true);
+  setError(null);
 
-    // Basic validation (optional, enhance as needed)
-    if (!formData.name.trim() || !formData.phoneNumber.trim() || !formData.address.trim()) {
-        Alert.alert('Validation Error', 'Please fill in all fields.');
-        setIsSubmitting(false);
-        return;
-    }
+  if (!formData.name.trim() || !formData.newNumber.trim() || !formData.address.trim()) {
+    setModalMessage('Please fill in all fields.');
+    setModalVisible(true);
+    setIsSubmitting(false);
+    return;
+  }
 
-    // Construct the payload for the change request
-    const payload: ProfileChangeRequestPayload = {
-      requestedPhoneNumber: formData.phoneNumber,
-      requestedName: formData.name,
-      requestedAddress: formData.address,
-    };
+  const phoneNumberChanged = formData.newNumber !== originalData?.phoneNumber;
+  const nameChanged = formData.name !== originalData?.name;
+  const addressChanged = formData.address !== originalData?.address;
 
-    // Determine if any actual changes were made (optional, backend might also do this)
-    let changesMade = false;
-    if (originalData) {
-        if (originalData.phoneNumber !== formData.phoneNumber ||
-            originalData.name !== formData.name ||
-            originalData.address !== formData.address) {
-            changesMade = true;
-        }
-    } else {
-        changesMade = true; // If original data isn't there, assume changes
-    }
+  const changesMade = phoneNumberChanged || nameChanged || addressChanged;
 
-    if (!changesMade) {
-        Alert.alert('No Changes', 'You haven\'t made any changes to your profile.');
-        setIsSubmitting(false);
-        return;
-    }
+  if (!changesMade) {
+    setModalMessage('You haven’t made any changes.');
+    setModalVisible(true);
+    setIsSubmitting(false);
+    return;
+  }
 
-
-    try {
-      // Replace with your actual API endpoint for submitting change requests
-      // The backend should handle this payload and create pending requests
-      await api.post('/profile-change-requests', payload); // Example endpoint
-
-      Alert.alert(
-        'Request Submitted',
-        'Your profile change request has been submitted successfully. It will be reviewed by an administrator.'
-      );
-      router.back(); // Go back to the previous screen
-    } catch (err) {
-      console.error('Failed to submit profile change request:', err);
-      let message = 'Failed to submit your request. Please try again.';
-      if (err instanceof AxiosError && err.response?.data?.message) {
-        message = typeof err.response.data.message === 'string'
-            ? err.response.data.message
-            : 'An unexpected error occurred while submitting your request.';
-      }
-      setError(message);
-      Alert.alert('Error', message);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const payload: ProfileChangeRequestPayload & { complaintType?: string } = {
+    requestedName: formData.name,
+    requestedAddress: formData.address,
+    requestedPhoneNumber: formData.newNumber,
+    ...(phoneNumberChanged && { complaintType: 'Change Number' }) // Add only if number changed
   };
+
+  try {
+    await api.post('/auth/profile', payload);
+
+    setModalMessage(
+      phoneNumberChanged
+        ? 'Your request to change the number has been submitted. We will review and update it shortly.'
+        : 'Your profile has been successfully updated.'
+    );
+    setModalVisible(true);
+  } catch (err) {
+    console.error('API Error (Full Details):', err);
+    setError('Something went wrong while submitting your request. Please try again.');
+    setModalMessage('An error occurred. Please try again later.');
+    setModalVisible(true);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   if (!fontsLoaded && !fontError) {
     return null;
@@ -237,32 +249,29 @@ export default function EditProfileScreen(): React.JSX.Element | null {
           />
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Old Phone Number</Text>
-          <TextInput
-            style={styles.disabledInput}
-            value={formData.phoneNumber}
-            
-            placeholder="Enter your phone number"
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            editable={false}
-            placeholderTextColor="#94a3b8"
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>New Phone Number</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.phoneNumber}
-            onChangeText={(text) => handleInputChange('phoneNumber', text)}
-            placeholder="Enter your phone number"
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            editable={!isSubmitting}
-            placeholderTextColor="#94a3b8"
-          />
-        </View>
+       <View style={styles.inputGroup}>
+  <Text style={styles.label}>Current Phone Number</Text>
+  <TextInput
+    style={styles.disabledInput}
+    value={originalData?.phoneNumber}
+    editable={false}
+    placeholderTextColor="#94a3b8"
+  />
+</View>
+
+       <View style={styles.inputGroup}>
+  <Text style={styles.label}>New Phone Number</Text>
+  <TextInput
+    style={styles.input}
+    value={newNumber}
+    onChangeText={(text) => handleInputChange('phoneNumber', text)}
+    keyboardType="phone-pad"
+    editable={!isSubmitting}
+    placeholder="Enter new phone number"
+    placeholderTextColor="#94a3b8"
+  />
+</View>
+
 
         {/* <View style={styles.inputGroup}>
           <Text style={styles.label}>Address</Text>
@@ -307,7 +316,26 @@ export default function EditProfileScreen(): React.JSX.Element | null {
           )}
         </TouchableOpacity>
       </View>
+      {modalVisible && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContainer}>
+      <Text style={styles.modalMessage}>{modalMessage}</Text>
+      <TouchableOpacity
+        style={styles.modalButton}
+        onPress={() => {
+          setModalVisible(false);
+          if (!error) router.back(); // Only go back if not an error
+        }}
+      >
+        <Text style={styles.modalButtonText}>OK</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+
+
     </ScrollView>
+    
   );
 }
 
@@ -423,4 +451,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 15,
   },
+  modalOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,
+},
+modalContainer: {
+  backgroundColor: '#fff',
+  padding: 24,
+  borderRadius: 12,
+  width: '80%',
+  alignItems: 'center',
+  elevation: 10,
+},
+modalMessage: {
+  fontFamily: 'Poppins_500Medium',
+  fontSize: 16,
+  color: '#1e293b',
+  textAlign: 'center',
+  marginBottom: 20,
+},
+modalButton: {
+  backgroundColor: '#9747FF',
+  paddingHorizontal: 24,
+  paddingVertical: 12,
+  borderRadius: 8,
+},
+modalButtonText: {
+  fontFamily: 'Poppins_600SemiBold',
+  fontSize: 16,
+  color: '#fff',
+},
+
 });

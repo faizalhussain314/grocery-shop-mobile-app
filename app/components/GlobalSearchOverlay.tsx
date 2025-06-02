@@ -31,6 +31,9 @@ const GlobalSearchOverlay: React.FC<GlobalSearchOverlayProps> = ({ isVisible, on
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+const [hasMore, setHasMore] = useState(true);
+
   // Removed BASE_URL state
 
   // Initialize the router hook - ADDED
@@ -38,30 +41,43 @@ const GlobalSearchOverlay: React.FC<GlobalSearchOverlayProps> = ({ isVisible, on
 
 
   // Debounced search function (no changes needed here)
-  const debouncedSearch = useCallback(
-    debounce(async (query: string) => {
-      // ... (keep existing debounce logic) ...
-        if (!query.trim()) {
-        setSearchResults([]);
-        setIsLoading(false);
-        setError(null);
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      try {
-        const results = await searchProductsByName(query);
-        setSearchResults(results);
-      } catch (err) {
-        setError('Failed to fetch search results.');
-        setSearchResults([]); // Clear results on error
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 500),
-    []
-  );
+const debouncedSearch = useCallback(
+  debounce(async (query: string) => {
+    if (!query.trim()) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { results, hasMore } = await searchProductsByName(query, 1);
+      setSearchResults(results);
+      setPage(2); // next page
+      setHasMore(hasMore);
+    } catch (err) {
+      setError('Failed to fetch search results.');
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, 500),
+  []
+);
+
+const loadMoreResults = async () => {
+  if (isLoading || !hasMore) return;
+
+  setIsLoading(true);
+  try {
+    const { results, hasMore: more } = await searchProductsByName(searchQuery, page);
+    setSearchResults(prev => [...prev, ...results]);
+    setPage(prev => prev + 1);
+    setHasMore(more);
+  } catch (err) {
+    console.error("Pagination error:", err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // useEffect hook (no changes needed here)
   useEffect(() => {
@@ -170,21 +186,25 @@ const GlobalSearchOverlay: React.FC<GlobalSearchOverlayProps> = ({ isVisible, on
            </View>
 
           {/* Updated FlatList */}
-          <FlatList
-            data={searchResults}
-            renderItem={renderSearchResultItem}
-            keyExtractor={(item) => item._id} // Use _id as key
-            style={styles.resultsList}
-            ListHeaderComponent={renderListHeader}
-            ListEmptyComponent={renderEmptyComponent}
-            contentContainerStyle={styles.resultsListContent}
-            keyboardShouldPersistTaps="handled"
-          />
+         <FlatList
+  data={searchResults}
+  renderItem={renderSearchResultItem}
+  keyExtractor={(item) => item._id}
+  style={styles.resultsList}
+  ListHeaderComponent={renderListHeader}
+  ListEmptyComponent={renderEmptyComponent}
+  contentContainerStyle={styles.resultsListContent}
+  keyboardShouldPersistTaps="handled"
+  onEndReachedThreshold={0.5}
+  onEndReached={loadMoreResults}
+/>
+
 
           {/* Loading Indicator (no changes needed) */}
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#4CAF50" />
+              <ActivityIndicator size="large" color="#C191FF;
+" />
             </View>
           )}
         </View>
@@ -273,7 +293,7 @@ const styles = StyleSheet.create({
   },
   resultPrice: {
       fontSize: 14, // Slightly larger price
-      color: '#059669', // Keep green color
+      color: '#C191FF', // Keep green color
       marginTop: 2,
   },
   resultCategory: { // Optional style for category

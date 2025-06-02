@@ -7,7 +7,7 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
-  FlatList,
+  
 } from 'react-native';
 import {
   useFonts,
@@ -19,6 +19,8 @@ import { MapPin, Bell, Search, Star, TrendingUp, ShoppingCart } from 'lucide-rea
 import { Link, useRouter } from 'expo-router'; // Import useRouter
 import { useEffect, useState, useRef } from 'react';
 import { BestSelling, getBestSelling } from '@/services/bestSellingService';
+import { getNewlyAddedProducts } from '@/services/productService';
+
 // Assuming you have a categoryService
 import { Category, getCategories } from '@/services/categroyService'; // Adjust import path/name as needed
 
@@ -26,8 +28,17 @@ import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
 import { getQuickPicks, Product, QuickPicks } from '@/services/productService';
 import ProductCard from '../components/ProductCard';
 import Toast from 'react-native-toast-message';
-import FeaturedVideoSection from '../components/FeaturedVideoSection';
-import { api } from '@/lib/axios';
+// import FeaturedVideoSection from '../components/FeaturedVideoSection';
+import { useAuthStore } from '@/store/authStore'; // adjust path if needed
+
+
+import BatchTimingCard from '../components/BatchTimingCard';
+import { useCartStore } from '@/store/cartStore';
+import CartIconWithBadge from '../components/CartIconWithBadge';
+import BannerOne from '@/assets/images/bannerOne.png';
+import BannerTwo from '@/assets/images/BannerTwo.png';
+import BannerThree from '@/assets/images/BannerThree.png';
+
 // import VideoCard from '../components/VideoCard';
 
 const { width } = Dimensions.get('window');
@@ -35,22 +46,19 @@ const { width } = Dimensions.get('window');
 const slides = [
   {
     id: '1',
-    image:
-      'https://images.pexels.com/photos/8105066/pexels-photo-8105066.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image: BannerOne,
     title: 'Fresh & Healthy',
     subtitle: 'Get fresh vegetables delivered to your doorstep',
   },
   {
     id: '2',
-    image:
-      'https://images.pexels.com/photos/4871119/pexels-photo-4871119.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image:BannerTwo,
     title: 'Organic Products',
     subtitle: 'Handpicked organic produce for your family',
   },
   {
     id: '3',
-    image:
-      'https://images.pexels.com/photos/8105078/pexels-photo-8105078.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image:BannerThree,
     title: 'Farm Fresh',
     subtitle: 'Direct from farms to your kitchen',
   },
@@ -67,7 +75,7 @@ export default function HomeScreen() {
   const [bestSelling, setBestSelling] = useState<Product[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // State for categories - ADDED
+
   const [quickPicks, setquickPicks] = useState<QuickPicks[]>([]);
  
   const [isquickPicksLoading, setIquickPicksLoading] = useState(true);
@@ -76,7 +84,20 @@ export default function HomeScreen() {
   const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
   const [cart, setCart] = useState<Product[]>([]);
 
+  const [newlyAddedProducts, setNewlyAddedProducts] = useState<Product[]>([]);
+  const [isNewlyAddedLoading, setIsNewlyAddedLoading] = useState(true);
+  const [newlyAddedError, setNewlyAddedError] = useState<string | null>(null);
+  
+const [page, setPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+const [isLoadingMore, setIsLoadingMore] = useState(false);
+const ITEMS_PER_PAGE = 6;
+
+
   const router = useRouter(); 
+
+  const { user } = useAuthStore();
+ const { cartCount } = useCartStore();
 
  
   useEffect(() => {
@@ -92,23 +113,21 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [currentSlide]);
 
-  // Effect to load Best Selling products (Keep and optionally add loading/error states)
+ 
   useEffect(() => {
     const loadBestSelling = async () => {
-     
       try {
-        const data = await getBestSelling();
-       
-        setBestSelling(data);
+        const { results, pagination } = await getBestSelling(1, ITEMS_PER_PAGE);
+        setBestSelling(results);
+        setPage(pagination.page);
+        setTotalPages(pagination.totalPages);
       } catch (error) {
         console.error('Failed to load best selling products:', error);
-        // Set error state if needed
-      } finally {
-        // setIsLoadingBestSelling(false);
       }
     };
     loadBestSelling();
   }, []);
+  
 
   // Effect to load Categories - ADDED
   useEffect(() => {
@@ -119,6 +138,7 @@ export default function HomeScreen() {
        
         const data = await getQuickPicks(); 
         setquickPicks(data);
+      
       } catch (error) {
         console.error('Failed to load quickpicks:', error);
         setCategoriesError('Failed to load quickpicks.');
@@ -129,10 +149,27 @@ export default function HomeScreen() {
     loadQuickPicks();
   }, []);
 
-
+  useEffect(() => {
+    const fetchNewlyAdded = async () => {
+      try {
+        setIsNewlyAddedLoading(true);
+        const data = await getNewlyAddedProducts();
+        setNewlyAddedProducts(data);
+      } catch (error) {
+        console.error('Failed to fetch newly added products:', error);
+        setNewlyAddedError('Failed to fetch new arrivals.');
+      } finally {
+        setIsNewlyAddedLoading(false);
+      }
+    };
+  
+    fetchNewlyAdded();
+  }, []);
+  
 
   const handleCategoryClick = (category: Category) => {
-    console.log('Category clicked:', category.name);
+   
+    
 
     router.push({
       pathname: '/subcategories/[categoryName]',
@@ -147,6 +184,23 @@ export default function HomeScreen() {
   const closeSearchOverlay = () => {
     setIsSearchOverlayVisible(false);
   };
+
+  const loadMoreBestSelling = async () => {
+    const nextPage = page + 1;
+    if (nextPage > totalPages) return;
+  
+    try {
+      setIsLoadingMore(true);
+      const { results } = await getBestSelling(nextPage, ITEMS_PER_PAGE);
+      setBestSelling(prev => [...prev, ...results]);
+      setPage(nextPage);
+    } catch (error) {
+      console.error('Failed to load more best selling products:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+  
 
   // Show loading indicator if fonts or categories are loading
   if (!fontsLoaded || isquickPicksLoading) {
@@ -169,7 +223,14 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.locationContainer}>
           <MapPin size={20} color="#9747FF" />
-          <Text style={styles.locationText}>K-Truck</Text>
+          <Text
+  style={styles.locationText}
+  numberOfLines={1}
+  ellipsizeMode="tail"
+>
+  {user?.address || 'Select Location'}
+</Text>
+
         </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity
@@ -179,7 +240,8 @@ export default function HomeScreen() {
             <Search size={20} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-          <Link href={"/cart"} > <ShoppingCart size={20} color="#64748b" /></Link>
+          <CartIconWithBadge />
+
           </TouchableOpacity>
         </View>
       </View>
@@ -200,14 +262,17 @@ export default function HomeScreen() {
         >
           {slides.map((slide, index) => (
             <View key={index} style={styles.slide}>
-              <Image source={{ uri: slide.image }} style={styles.slideImage} />
-              <View style={styles.slideContent}>
+              <Image source={ slide.image } style={styles.slideImage} />
+              {/* <View style={styles.slideContent}>
                 <Text style={styles.slideTitle}>{slide.title}</Text>
                 <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
-              </View>
+              </View> */}
             </View>
           ))}
         </ScrollView>
+
+     
+
         <View style={styles.pagination}>
           {slides.map((_, index) => (
             <View
@@ -221,89 +286,81 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Best Selling Section - MODIFIED TO BE SLIDABLE */}
-      <View style={styles.bestSellingSection}>
-        <View style={styles.sectionHeader}>
+         <BatchTimingCard />
+
+      {isNewlyAddedLoading ? (
+  <View style={styles.loaderContainer}>
+    <ActivityIndicator size="small" color="#9747FF" />
+    <Text style={styles.loadingText}>Loading New Arrivals...</Text>
+  </View>
+) : (
+  <>
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionTitleContainer}>
+        <Star size={24} color="#AC6CFF" />
+        <Text style={styles.sectionTitle}>New Arrivals</Text>
+      </View>
+    </View>
+
+    <View style={styles.categoriesSection}>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          paddingVertical: 20,
+        }}
+      >
+        {newlyAddedProducts.length > 0 ? (
+          newlyAddedProducts.map((product, index) => (
+            <ProductCard key={index} product={product} />
+          ))
+        ) : (
+          <Text style={styles.loadingText}>No new products available.</Text>
+        )}
+      </View>
+    </View>
+  </>
+)}
+
+
+      {/* <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
             <TrendingUp size={24} color="#AC6CFF" />
             <Text style={styles.sectionTitle}>Best Selling</Text>
           </View>
-          {/* <TouchableOpacity>
-            <Text style={styles.seeAllButton}>See All</Text>
-          </TouchableOpacity> */}
+        </View> */}
+    
+      {/* <View style={styles.bestSellingList}>
+        
+  {bestSelling.map((product, index) => (
+    <Link key={index} href={`/product/${product._id}`} asChild>
+      <TouchableOpacity style={styles.bestSellingCard}>
+        <Image source={{ uri: `${product.image}` }} style={styles.productImage} />
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+          <View style={styles.productDetails}>
+            <Text style={styles.productPrice}>₹{product.price?.toFixed(2) ?? 'N/A'}</Text>
+            {product.unit && <Text style={styles.productUnit}>/ {product.unit}</Text>}
+          </View>
         </View>
+      </TouchableOpacity>
+    </Link>
+  ))}
 
-        {/* Wrap best selling items in a horizontal ScrollView */}
-        <View
-          // horizontal // Make it horizontal
-          // showsHorizontalScrollIndicator={false}
-          style={styles.bestSellingList} // Apply horizontal padding and gap
-        >
-          {/* Render best selling items here */}
-          {Array.isArray(bestSelling) && bestSelling.length > 0 ? (
-            
-            bestSelling.map((product, index) => (
-            
-              <Link key={index} href={`/product/${product._id}`} asChild>
+  {page < totalPages && (
+    <TouchableOpacity
+      style={[styles.loadMoreButton, { marginTop: 20 }]}
+      onPress={loadMoreBestSelling}
+      disabled={isLoadingMore}
+    >
+      <Text style={styles.loadMoreText}>
+        {isLoadingMore ? 'Loading...' : 'Load More'}
+      </Text>
+    </TouchableOpacity>
+  )}
+</View> */}
 
-                <TouchableOpacity style={styles.bestSellingCard}>
-                
-                  {/* Use a specific style for horizontal list items */}
-                  <Image
-                    source={{ uri: `${product.image}` }}
-                    style={styles.productImage}
-                  />
-                  {/* Add organic badge or other product info as needed */}
-                  <View style={styles.productInfo}>
-                   
-                    {/* Re-using productInfo style */}
-                    <Text style={styles.productName} numberOfLines={1}>
-                      {product.name}
-                    </Text>
-                    {/* Re-using productName style */}
-                    {/* Add price, unit, rating etc. here */}
-                    <View style={styles.productDetails}>
-                      <Text style={styles.productPrice}>
-                        ₹{product.price?.toFixed(2) ?? 'N/A'}
-                      </Text>
-                      {product.unit && (
-                        <Text style={styles.productUnit}>/ {product.unit}</Text>
-                      )}
-                    </View>
-                    {product.rating !== undefined &&
-                      product.rating !== null && (
-                        <View style={styles.ratingContainer}>
-                         
-                          {/* Re-using ratingContainer style */}
-                          <Text style={styles.rating}>
-                            ⭐ {product.rating?.toFixed(1) ?? 'N/A'}
-                          </Text>
-                          {/* Re-using rating style */}
-                        </View>
-                      )}
-                  </View>
-                </TouchableOpacity>
-                
-              </Link>
-            ))
-          ) : (
-          
-            <View
-              style={{
-                width: width - 40,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-             
-              {/* Give it some width */}
-              <Text style={{ padding: 20, color: '#94a3b8' }}>
-                No best selling products found.
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
 
       {/* <View> */}
       {/* <VideoCard
@@ -312,7 +369,7 @@ export default function HomeScreen() {
   duration="11:25"
   title="Farm‑Fresh Vegetables"
 /> */}
-<FeaturedVideoSection />
+
 
       {/* </View> */}
 
@@ -398,9 +455,11 @@ const styles = StyleSheet.create({
   locationText: {
     marginLeft: 8,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 16,
+    fontSize: 14, // decreased from 16
     color: '#1e293b',
+    maxWidth: 250, // 👈 optional, can adjust based on screen
   },
+  
   headerIcons: {
     flexDirection: 'row',
     gap: 12,
@@ -417,11 +476,15 @@ const styles = StyleSheet.create({
   slide: {
     width: width,
     height: 200,
+    borderRadius:"20px",
+    padding:20,
   },
   slideImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+     borderRadius: 20,
+  overflow: 'hidden',
   },
   slideContent: {
     position: 'absolute',
@@ -462,6 +525,7 @@ const styles = StyleSheet.create({
   },
   bestSellingSection: {
     paddingVertical: 20,
+    padding:0
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -487,16 +551,18 @@ const styles = StyleSheet.create({
   },
 
   bestSellingList: {
-    paddingHorizontal: 20,
+    // paddingHorizontal: 20,
     paddingVertical:20,
-    gap: 16, 
+    gap: 26, 
     flexDirection: 'row', 
     flexWrap: "wrap",
+    alignItems:"center",
+    justifyContent:"center"
     
   },
   bestSellingCard: {
    
-    width: 150, 
+    width: 170, 
     backgroundColor: '#ffffff',
     borderRadius: 16,
     overflow: 'hidden',
@@ -648,4 +714,18 @@ const styles = StyleSheet.create({
     color: '#ef4444', // Red color
     textAlign: 'center',
   },
+  loadMoreButton: {
+    alignSelf: 'center',
+    backgroundColor: '#AC6CFF',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  loadMoreText: {
+    color: '#fff',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+  },
+  
 });
