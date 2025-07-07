@@ -6,7 +6,15 @@
     "android": {
       "package": "com.quantumcraft.ktruck",
       "versionCode": 1 ,
-       "jsEngine": "hermes"
+       "jsEngine": "hermes",
+        "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.jpeg",
+        "backgroundColor": "#8B5CF6"
+      }
+    },
+     "statusBar": {
+      "style": "dark",
+      "backgroundColor": "#ffffff"
     },
     "orientation": "portrait",
     "icon": "./assets/images/icon.jpeg",
@@ -16,6 +24,7 @@
     "ios": {
       "supportsTablet": true
     },
+    
     "web": {
       "bundler": "metro",
       "output": "single",

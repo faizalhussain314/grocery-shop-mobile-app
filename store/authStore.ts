@@ -8,10 +8,23 @@ interface AuthState {
   user: any | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (phoneNumber: string, password: string) => Promise<void>;
+  login: (phoneNumber: string, password: string) => Promise<User | undefined>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+   updateUser: (updatedFields: Partial<User>) => Promise<void>;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  role: 'customer' | 'vendor';
+  isActive: boolean;
+  address: string;
+  vendorId?: string;
+  isVeg?: boolean;
 }
 
 const storage = {
@@ -37,7 +50,7 @@ const storage = {
   }
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   user: null,
   isAuthenticated: false,
@@ -48,6 +61,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   try {
     const response = await api.post('/auth/login', { phoneNumber, password });
 
+    console.log("response",response.data)
+
     const { token, user } = response.data;
 
     if (!token || !user) throw new Error('Invalid response');
@@ -56,6 +71,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await storage.setItem('user', JSON.stringify(user));
 
     set({ token, user, isLoading: false });
+    return user;
   } catch (error: any) {
     set({ isLoading: false });
     throw new Error(error?.response?.data?.message || 'Login failed');
@@ -108,5 +124,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (_) {
       set({ token: null, user: null, isAuthenticated: false, isLoading: false });
     }
-  }
+  },
+
+   updateUser: async (updatedFields: Partial<User>) => {
+  const { user } = get();
+  if (!user) return;
+
+  const updatedUser: User = { ...user, ...updatedFields };
+
+  await storage.setItem('user', JSON.stringify(updatedUser));
+  set({ user: updatedUser });
+}
 }));

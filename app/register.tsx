@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
 import {
   useFonts,
@@ -59,7 +60,9 @@ export default function ContactSupportScreen() {
   
 
   return (
+   
     <View style={styles.container}>
+       <ScrollView>
       <View style={styles.header}>
         <Image
           source={{
@@ -134,8 +137,9 @@ export default function ContactSupportScreen() {
     </View>
   </View>
 )}
-
+</ScrollView>
     </View>
+   
   );
 }
 
@@ -145,7 +149,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
-    height: '40%',
+    height: '30%',
   },
   headerImage: {
     width: '100%',
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     backgroundColor: '#ffffff',
-    marginTop: -30,
+   
   },
   title: {
     fontFamily: 'Poppins_600SemiBold',
@@ -208,6 +212,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
+     width: '100%',
   },
   footerText: {
     fontFamily: 'Poppins_400Regular',
@@ -221,6 +226,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 14,
     color: '#9747FF',
+    paddingHorizontal: 8,
   },
   modalOverlay: {
     position: 'absolute',

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
+  // Alert, // Replaced by custom modal for consistency
 } from 'react-native';
 import {
   useFonts,
@@ -17,47 +17,76 @@ import {
   Poppins_600SemiBold,
 } from '@expo-google-fonts/poppins';
 import { Save, ArrowLeft } from 'lucide-react-native';
-import { useAuthStore } from '@/store/authStore'; 
-import { router, useLocalSearchParams } from 'expo-router';
+// import { useAuthStore } from '@/store/authStore'; // Not directly used for update logic now
+import { router } from 'expo-router';
 import { api } from '@/lib/axios';
 import { AxiosError } from 'axios';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '@/store/authStore';
+import { useBackRedirect } from './hooks/useBackRedirect';
+
+// --- Type Definitions ---
+
+// Expected structure from the GET /auth/profile endpoint
+interface UserProfileDataFromAPI {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  role: 'customer' | string;
+  isActive: boolean;
+  address?: string; // Assuming address can be part of the user object
+  vendorId?: string;
+  isVeg?: boolean;
+}
+
+interface VendorUserDataFromAPI {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  role: 'vendor' | string;
+  isActive: boolean;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+// As per user's provided getProfile function's response
+type ProfileResponse = {
+  user: UserProfileDataFromAPI;
+  vendorUser?: VendorUserDataFromAPI;
+  vendorCode?: string;
+  serviceLocations?: string[];
+  rating?: number;
+  status?: string;
+  mapUrl?: string;
+};
 
 
-interface ProfileData {
+// Structure for storing original profile data fetched from the server
+interface OriginalProfileData {
   phoneNumber: string;
   role: string;
   isActive: boolean;
-  name: string; // Added name
-  address?: string; // Added address
+  name: string;
+  address: string; // Ensure address is always string, defaults to ''
 }
 
-// Define the structure for the form data state
+// Structure for the form data state
 interface FormData {
   name: string;
   address: string;
-  phoneNumber: string; // ← New number
-  newNumber:string;
+  newNumber: string; // For the new phone number input
 }
 
-interface OriginalData {
-  name: string;
-  address: string;
-  phoneNumber: string; // ← Old number
-}
-
-
-// Define the structure for the change request payload
+// Structure for the PATCH request payload (all fields optional)
 interface ProfileChangeRequestPayload {
-  requestedPhoneNumber: string;
-  requestedName: string;
-  requestedAddress: string;
-  // You could also include original values if your backend requires them
-  // originalPhoneNumber?: string;
-  // originalName?: string;
-  // originalAddress?: string;
+  requestedPhoneNumber?: string;
+  requestedName?: string;
+  requestedAddress?: string;
+  complaintType?: 'Change Number'; // Specific type for phone change
 }
-
-
 
 export default function EditProfileScreen(): React.JSX.Element | null {
   const [fontsLoaded, fontError] = useFonts({
@@ -65,69 +94,66 @@ export default function EditProfileScreen(): React.JSX.Element | null {
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
-
-  // Zustand store hook - not directly used for updating store on submit anymore,
-  // as changes are now requests.
-  // const updateUserInStore = useAuthStore((state) => state.updateUser);
-
+ const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>({
-    phoneNumber: '',
-    newNumber:'',
     name: '',
     address: '',
+    newNumber: '',
   });
-  const [originalData, setOriginalData] = useState<ProfileData | null>(null);
+  const [originalData, setOriginalData] = useState<OriginalProfileData | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-const [modalMessage, setModalMessage] = useState('');
-const [newNumber, setnewNumber] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [error, setError] = useState<string | null>(null); // For storing submission errors
+  const [userId , setuserId] = useState<string>();
+    const {user} = useAuthStore();
 
-// Store original fetched data
-  const [error, setError] = useState<string | null>(null);
+      useBackRedirect("/(tabs)/account");
 
-  
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        setError(null); // Clear previous errors
+        const res = await api.get<ProfileResponse>('/auth/profile');
+        const user = res.data.user;
 
- 
-
-
-useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      setIsLoading(true);
-      const res = await api.get('/auth/profile');
-     const user = res.data.user;
-
-const original: ProfileData = {
-  name: user.name ?? '',
-  address: user.address ?? '',
-  phoneNumber: user.phoneNumber ?? '',
-  role: user.role ?? '',
-  isActive: user.isActive ?? false,
-};
-
-setOriginalData(original);
+        const original: OriginalProfileData = {
+          name: user.name ?? '',
+          address: user.address ?? '', // Use user.address, default to '' if undefined
+          phoneNumber: user.phoneNumber ?? '',
+          role: user.role ?? '',
+          isActive: user.isActive ?? false,
+          
+        };
+        setuserId(user.id)
 
 
+        setOriginalData(original);
 
+        setFormData({
+          name: user.name ?? '',
+          address: user.address ?? '',
+          newNumber: '', // New number field starts empty
+        });
+      } catch (err) {
+        console.error('Fetch Profile Error:', err);
+        // Display error in modal instead of Alert
+        setModalMessage(
+          err instanceof AxiosError && err.response?.data?.message
+            ? err.response.data.message
+            : 'Failed to load your profile. Please try again.'
+        );
+        setModalVisible(true);
+        setError('Failed to load profile.'); // Set error state for modal behavior
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      setFormData({
-        name: user.name ?? '',
-        address: user.address ?? '',
-        phoneNumber: user.phoneNumber ?? '', // Starts as old, user edits
-        newNumber:''
-      });
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to load your profile.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  fetchProfile();
-}, []);
-
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (name: keyof FormData, value: string) => {
     setFormData((prevData) => ({
@@ -136,66 +162,131 @@ setOriginalData(original);
     }));
   };
 
- const handleSubmitChangeRequest = async () => {
-  setIsSubmitting(true);
-  setError(null);
+  const handleSubmitChangeRequest = async () => {
+    setIsSubmitting(true);
+    setError(null); // Clear previous submission errors
 
-  if (!formData.name.trim() || !formData.newNumber.trim() || !formData.address.trim()) {
-    setModalMessage('Please fill in all fields.');
-    setModalVisible(true);
-    setIsSubmitting(false);
-    return;
-  }
+    if (!originalData) {
+        setModalMessage('Original profile data not loaded. Please try again.');
+        setModalVisible(true);
+        setIsSubmitting(false);
+        return;
+    }
 
-  const phoneNumberChanged = formData.newNumber !== originalData?.phoneNumber;
-  const nameChanged = formData.name !== originalData?.name;
-  const addressChanged = formData.address !== originalData?.address;
+    const trimmedName = formData.name.trim();
+    const trimmedAddress = formData.address.trim();
+    const trimmedNewNumber = formData.newNumber.trim();
 
-  const changesMade = phoneNumberChanged || nameChanged || addressChanged;
+    const nameChanged = trimmedName !== originalData.name;
+    const addressChanged = trimmedAddress !== originalData.address;
+    // Phone number changed only if newNumber is not empty and different from original
+    const phoneNumberChanged = trimmedNewNumber !== '' && trimmedNewNumber !== originalData.phoneNumber;
 
-  if (!changesMade) {
-    setModalMessage('You haven’t made any changes.');
-    setModalVisible(true);
-    setIsSubmitting(false);
-    return;
-  }
+    const payload: ProfileChangeRequestPayload = {};
+    let changesMade = false;
 
-  const payload: ProfileChangeRequestPayload & { complaintType?: string } = {
-    requestedName: formData.name,
-    requestedAddress: formData.address,
-    requestedPhoneNumber: formData.newNumber,
-    ...(phoneNumberChanged && { complaintType: 'Change Number' }) // Add only if number changed
+    if (nameChanged) {
+      if (!trimmedName) {
+        setModalMessage('Name cannot be empty if you are changing it.');
+        setModalVisible(true);
+        setIsSubmitting(false);
+        return;
+      }
+      payload.requestedName = trimmedName;
+      changesMade = true;
+    }
+
+    if (addressChanged) {
+      if (!trimmedAddress) {
+        setModalMessage('Address cannot be empty if you are changing it.');
+        setModalVisible(true);
+        setIsSubmitting(false);
+        return;
+      }
+      payload.requestedAddress = trimmedAddress;
+      changesMade = true;
+    }
+
+    if (phoneNumberChanged) {
+      // No need to check if trimmedNewNumber is empty again, as it's part of phoneNumberChanged condition
+      payload.requestedPhoneNumber = trimmedNewNumber;
+      payload.complaintType = 'Change Number';
+      changesMade = true;
+    }
+
+    if (!changesMade) {
+      setModalMessage('You haven’t made any changes.');
+      setModalVisible(true);
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+    
+
+      const payloadInfo = {
+        name:payload.requestedName,
+        phoneNumber: payload.requestedPhoneNumber
+      }
+    
+      await api.patch(`auth/updateProfile/${userId}`, payloadInfo);
+      await useAuthStore.getState().updateUser({ name: payload.requestedName });
+
+      let successMessage = 'Your profile has been successfully updated.';
+      if (payload.requestedPhoneNumber) {
+        successMessage =
+          'Your request to change the number has been submitted. We will review and update it shortly.';
+      }
+      setModalMessage(successMessage);
+      setModalVisible(true);
+      setError(null); 
+
+      // Update originalData and formData for successfully committed non-phone changes
+      const updatedOriginalData = { ...originalData };
+      let newFormName = formData.name;
+      let newFormAddress = formData.address;
+
+      if (payload.requestedName) {
+        updatedOriginalData.name = payload.requestedName;
+        newFormName = payload.requestedName;
+      }
+      if (payload.requestedAddress) {
+        updatedOriginalData.address = payload.requestedAddress;
+        newFormAddress = payload.requestedAddress;
+      }
+      // originalData.phoneNumber is not updated here as it's a request
+
+      setOriginalData(updatedOriginalData);
+      setFormData({
+        name: newFormName,
+        address: newFormAddress,
+        newNumber: '', // Clear new number field after successful submission
+      });
+
+    } catch (err) {
+      console.error('API Patch Error (Full Details):', err);
+      const errorMessage =
+        err instanceof AxiosError && err.response?.data?.message
+          ? String(err.response.data.message)
+          : 'Something went wrong while submitting your request. Please try again.';
+      setError(errorMessage);
+      setModalMessage(errorMessage);
+      setModalVisible(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  try {
-    await api.post('/auth/profile', payload);
-
-    setModalMessage(
-      phoneNumberChanged
-        ? 'Your request to change the number has been submitted. We will review and update it shortly.'
-        : 'Your profile has been successfully updated.'
-    );
-    setModalVisible(true);
-  } catch (err) {
-    console.error('API Error (Full Details):', err);
-    setError('Something went wrong while submitting your request. Please try again.');
-    setModalMessage('An error occurred. Please try again later.');
-    setModalVisible(true);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-
   if (!fontsLoaded && !fontError) {
-    return null;
+    return null; // Or a minimal loading state if preferred over blank screen
   }
   if (fontError) {
     console.error("Font loading error:", fontError);
-    return <Text>Error loading fonts.</Text>;
+    // Potentially render a more user-friendly error message
+    return <View style={styles.loadingContainer}><Text>Error loading fonts.</Text></View>;
   }
 
-  if (isLoading) {
+  if (isLoading && !modalVisible) { // Don't show main loader if modal (e.g. fetch error modal) is up
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -204,38 +295,27 @@ setOriginalData(original);
   }
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <React.Fragment>
+    <ScrollView style={styles.container} >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#1e293b" />
         </TouchableOpacity>
         <Text style={styles.title}>Request Profile Change</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 40 }} /> 
       </View>
 
+     
       {/* <View style={styles.infoBox}>
         <Text style={styles.infoText}>
-          Changes to your profile information need to be approved.
-          Please submit your desired changes below.
+          Changes to your profile information (except phone number) will be updated immediately.
+          Phone number changes require approval.
         </Text>
       </View> */}
+     
 
       <View style={styles.formContainer}>
-        {error && !isSubmitting && <Text style={styles.errorText}>{error}</Text>}
-
-        {/* <View style={styles.inputGroup}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput
-            style={styles.disabledInput}
-            value={formData.name}
-            onChangeText={(text) => handleInputChange('name', text)}
-            placeholder="Enter your full name"
-            autoCapitalize="words"
-            editable={false}
-            placeholderTextColor="#94a3b8"
-          />
-        </View> */}
-
+        {/* Name Input */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Name</Text>
           <TextInput
@@ -249,48 +329,36 @@ setOriginalData(original);
           />
         </View>
 
-       <View style={styles.inputGroup}>
-  <Text style={styles.label}>Current Phone Number</Text>
-  <TextInput
-    style={styles.disabledInput}
-    value={originalData?.phoneNumber}
-    editable={false}
-    placeholderTextColor="#94a3b8"
-  />
-</View>
-
-       <View style={styles.inputGroup}>
-  <Text style={styles.label}>New Phone Number</Text>
-  <TextInput
-    style={styles.input}
-    value={newNumber}
-    onChangeText={(text) => handleInputChange('phoneNumber', text)}
-    keyboardType="phone-pad"
-    editable={!isSubmitting}
-    placeholder="Enter new phone number"
-    placeholderTextColor="#94a3b8"
-  />
-</View>
-
-
-        {/* <View style={styles.inputGroup}>
-          <Text style={styles.label}>Address</Text>
+        {/* Current Phone Number (Display Only) */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Current Phone Number</Text>
           <TextInput
-            style={[styles.disabledInput, styles.textArea]} // Added textArea style for multiline
-            value={formData.address}
-            onChangeText={(text) => handleInputChange('address', text)}
-            placeholder="Enter your full address"
+            style={styles.disabledInput}
+            value={originalData?.phoneNumber || 'Loading...'}
             editable={false}
             placeholderTextColor="#94a3b8"
-            multiline
-            numberOfLines={3}
           />
-        </View> */}
+        </View>
 
+        {/* New Phone Number Input */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>New Phone Number (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.newNumber}
+            onChangeText={(text) => handleInputChange('newNumber', text)} // Corrected to 'newNumber'
+            keyboardType="phone-pad"
+            editable={!isSubmitting}
+            placeholder="Enter new phone number"
+            placeholderTextColor="#94a3b8"
+          />
+        </View>
+
+        {/* Address Input (Uncommented and Editable) */}
         {/* <View style={styles.inputGroup}>
           <Text style={styles.label}>Address</Text>
           <TextInput
-            style={[styles.input, styles.textArea]} // Added textArea style for multiline
+            style={[styles.input, styles.textArea]}
             value={formData.address}
             onChangeText={(text) => handleInputChange('address', text)}
             placeholder="Enter your full address"
@@ -315,26 +383,36 @@ setOriginalData(original);
             </>
           )}
         </TouchableOpacity>
+        
       </View>
-      {modalVisible && (
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContainer}>
-      <Text style={styles.modalMessage}>{modalMessage}</Text>
-      <TouchableOpacity
-        style={styles.modalButton}
-        onPress={() => {
-          setModalVisible(false);
-          if (!error) router.back(); // Only go back if not an error
-        }}
-      >
-        <Text style={styles.modalButtonText}>OK</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-)}
 
-
+    
+   
     </ScrollView>
+     {modalVisible && (
+        // The modalOverlay takes safe area insets to cover the whole screen correctly
+        <View style={[styles.modalOverlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          {/* The modalContainer is now centered within the overlay */}
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalMessage}>{modalMessage}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setModalVisible(false);
+                if (!error && (modalMessage.includes('successfully updated') || modalMessage.includes('submitted'))) {
+                  router.back();
+                }
+                if (error && modalMessage !== 'Failed to load your profile. Please try again.') {
+                  setError(null);
+                }
+              }}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </React.Fragment>
     
   );
 }
@@ -345,49 +423,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FAF7FF',
+   
   },
   container: {
     flex: 1,
     backgroundColor: '#FAF7FF',
+    height:"100%",
+   
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60, // Adjust for status bar height if necessary
+    paddingTop: 60, // Adjust for status bar height if necessary (e.g., using react-native-safe-area-context)
     paddingBottom: 20,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   backButton: {
-    padding: 8,
+    padding: 8, // Make tap target slightly larger
   },
   title: {
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 18, // Slightly reduced size for longer title
+    fontSize: 18,
     color: '#1e293b',
     textAlign: 'center',
+    flex: 1, // Allows title to take available space for better centering with unequal button widths
   },
   infoBox: {
-    backgroundColor: '#C191FF', // Light blue background
+    backgroundColor: '#C191FF',
     padding: 15,
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#9747FF', // Sky blue border
+    borderLeftColor: '#9747FF',
   },
   infoText: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
-    color: '#fff', // Darker sky blue text
+    color: '#ffffff', // Ensure contrast with C191FF
     lineHeight: 20,
   },
   formContainer: {
     padding: 20,
-    marginTop: 10, // Reduced margin after infoBox
+    // marginTop: 10, // Use if infoBox is active
   },
   inputGroup: {
     marginBottom: 20,
@@ -410,33 +492,43 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   disabledInput: {
-    backgroundColor: '#fff', // Light gray to blend subtly with background
-    opacity: 1,  // Slight opacity to indicate disabled state
-    color: '#9ca3af', // Light gray text
-    borderColor: '#cbd5e1',
+    backgroundColor: '#f1f5f9', // Slightly different from input to show it's disabled
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    color: '#64748b', // Darker gray text for readability
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontFamily: 'Poppins_400Regular',
     fontSize: 16,
-    pointerEvents: 'none', // Disable interaction
+    // pointerEvents: 'none', // Not needed for TextInput editable=false
   },
   textArea: {
-    minHeight: 80, // For multiline address
-    textAlignVertical: 'top', // Align text to top for multiline
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#9747FF', // Changed to a sky blue color
+    backgroundColor: '#9747FF',
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
-    marginTop: 20,
+    marginTop: 20, // Add some space before button
+    elevation: 2, // Subtle shadow for Android
+    shadowColor: '#000', // Shadow for iOS
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    
+    position:"relative",
+    bottom:0,
+
   },
   submitButtonDisabled: {
-    backgroundColor: '#7dd3fc', // Lighter sky blue for disabled state
+    backgroundColor: '#c084fc', // Lighter purple for disabled state
+    elevation: 0,
   },
   submitButtonText: {
     fontFamily: 'Poppins_600SemiBold',
@@ -444,49 +536,69 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginLeft: 8,
   },
-  errorText: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    color: '#ef4444',
-    textAlign: 'center',
-    marginBottom: 15,
+  // errorText is not explicitly used, modal handles errors
+  // errorText: {
+  //   fontFamily: 'Poppins_400Regular',
+  //   fontSize: 14,
+  //   color: '#ef4444', // Red color for errors
+  //   textAlign: 'center',
+  //   marginBottom: 15,
+  // },
+ modalOverlay: {
+    flex: 1, // This ensures it covers the full available space
+    backgroundColor: 'rgba(0, 0, 0, 0.45)', // This is the dull, dimmed color
+    justifyContent: 'center', // Centers the modalContainer vertically
+    alignItems: 'center',   // Centers the modalContainer horizontally
+    // The paddingTop/paddingBottom from insets will be applied directly in JSX
+    position: 'absolute', // Ensures it overlays the entire screen
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000, // Make sure it's on top of other content
   },
-  modalOverlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 10,
-},
-modalContainer: {
-  backgroundColor: '#fff',
-  padding: 24,
-  borderRadius: 12,
-  width: '80%',
-  alignItems: 'center',
-  elevation: 10,
-},
-modalMessage: {
-  fontFamily: 'Poppins_500Medium',
-  fontSize: 16,
-  color: '#1e293b',
-  textAlign: 'center',
-  marginBottom: 20,
-},
-modalButton: {
-  backgroundColor: '#9747FF',
-  paddingHorizontal: 24,
-  paddingVertical: 12,
-  borderRadius: 8,
-},
-modalButtonText: {
-  fontFamily: 'Poppins_600SemiBold',
-  fontSize: 16,
-  color: '#fff',
-},
-
+  modalContainer: { // This will now mimic your successCard style
+    width: '80%', // Width of the card
+    backgroundColor: '#fff', // White background
+    borderRadius: 20, // Rounded corners
+    paddingVertical: 30, // Vertical padding
+    paddingHorizontal: 24, // Horizontal padding
+    alignItems: 'center', // Centers content inside the card
+    elevation: 10, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalMessage: { // This will now mimic your successSubtitle style
+    fontFamily: 'Poppins_400Regular', // Regular font
+    fontSize: 14, // Smaller font size
+    color: '#475569', // Grayish color
+    textAlign: 'center',
+    marginBottom: 20, // Add margin to separate message from button
+    lineHeight: 22,
+  },
+  modalTitle: { // NEW: Add a title style if you want a prominent message
+    fontFamily: 'Poppins_600SemiBold', // Semi-bold font
+    fontSize: 18, // Larger font size
+    color: '#1e293b', // Darker color
+    marginBottom: 8, // Margin below title
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#9747FF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+    // Align self to stretch if you want it full width of the card
+    // alignSelf: 'stretch',
+  },
+  modalButtonText: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 16,
+    color: '#fff',
+  },
 });
+

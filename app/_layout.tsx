@@ -7,11 +7,14 @@ import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import store from '@/store/store';
 
+
 export default function RootLayout() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const { token, user } = useAuthStore();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+
+  
 
   useEffect(() => {
     checkAuth().finally(() => setReady(true));
@@ -31,8 +34,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Provider store={store}>
+         <StatusBar style="dark"  backgroundColor="#ffffff" />
         <Toast />
-        <StatusBar style="auto" />
+       
         <Slot />
       </Provider>
     </SafeAreaProvider>

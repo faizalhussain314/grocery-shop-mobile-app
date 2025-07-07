@@ -4,7 +4,7 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import Constants from "expo-constants";
-import { getSubcategoriesByCategoryName, Subcategory } from '@/services/subcategoryService'; // Import the new service
+import { getSubcategoriesByCategoryId, Subcategory } from '@/services/subcategoryService'; // Import the new service
 import { ArrowLeft, Search } from 'lucide-react-native'; // Import back icon
 import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
 import CartIconWithBadge from '../components/CartIconWithBadge';
@@ -16,6 +16,7 @@ export default function SubcategoryListPage() {
   
     const params = useLocalSearchParams();
     const categoryName = params.categoryName as string; 
+    const categoryId = params.categoryId as string;
 
     const router = useRouter();
 
@@ -32,19 +33,19 @@ export default function SubcategoryListPage() {
 
     useEffect(() => {
         const fetchSubcategories = async () => {
-            if (!categoryName) {
-                setError('Category name is missing.');
+            if (!categoryId) {
+                setError('Category id is missing.');
                 setIsLoading(false);
                 return;
             }
             try {
                 setIsLoading(true);
                 setError(null);
-                const data = await getSubcategoriesByCategoryName(categoryName);
+                const data = await getSubcategoriesByCategoryId(categoryId);
                 setSubcategories(data);
             } catch (err) { 
-                console.error(`Error fetching subcategories for ${categoryName}:`, err);
-                setError(`Failed to load subcategories for "${categoryName}".`);
+                console.error(`Error fetching subcategories for ${categoryId}:`, err);
+                setError(`Failed to load subcategories for "${categoryId}".`);
                 setSubcategories([]); 
             } finally {
                 setIsLoading(false);
@@ -52,7 +53,7 @@ export default function SubcategoryListPage() {
         };
 
         fetchSubcategories();
-    }, [categoryName]); // Re-fetch if categoryName changes
+    }, [categoryId]); // Re-fetch if categoryName changes
 
     if (!fontsLoaded) {
         return null; // Or a loading indicator
@@ -107,7 +108,7 @@ export default function SubcategoryListPage() {
             {/* --- Stack Screen Options (Keep as is) --- */}
             <Stack.Screen
                 options={{
-                    title: categoryName || 'Subcategories',
+                    title: categoryId || 'Subcategories',
                     headerTitleStyle: {
                         fontFamily: 'Poppins_600SemiBold',
                         fontSize: 18,
@@ -171,7 +172,7 @@ export default function SubcategoryListPage() {
   ))
 ) : (
   <Text style={styles.emptyText}>
-    No subcategories found for "{categoryName}".
+    No subcategories found for "{categoryId}".
   </Text>
 )}
 

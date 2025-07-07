@@ -20,6 +20,7 @@ import {
   import { router, useLocalSearchParams } from 'expo-router';
 import { createComplaint } from '@/services/complaintService';
 import { Alert } from 'react-native';
+import { useBackRedirect } from './hooks/useBackRedirect';
   
   const QUERY_TYPES = [
     'Issue with Order',
@@ -47,6 +48,7 @@ const [showSuccess, setShowSuccess] = useState(false);
 const isChangeAddress = queryType === 'Change Address';
 
     
+  useBackRedirect("/(tabs)/account");
   
     if (!fontsLoaded) return null;
   

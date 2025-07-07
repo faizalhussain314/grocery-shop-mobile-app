@@ -22,12 +22,21 @@ interface SubcategoryPage {
 /**
  * Fetch sub-categories for a given category name.
  */
-export const getSubcategoriesByCategoryName = async (
-  categoryName: string,
-): Promise<Subcategory[]> => {
-  const { data } = await api.get<SubcategoryPage>('/subcategories', {
-    params: { category: categoryName },
-  });
+// export const getSubcategoriesByCategoryName = async (
+//   categoryName: string,
+// ): Promise<Subcategory[]> => {
+//   const { data } = await api.get<SubcategoryPage>('/subcategories', {
+//     params: { category: categoryName },
+//   });
 
-  return data.results;            // ← unwrap here
+//   return data.results;           
+// };
+
+export const getSubcategoriesByCategoryId = async (
+  categoryId: string,
+): Promise<Subcategory[]> => {
+
+  const { data } = await api.get<SubcategoryPage>(`/subcategories/${categoryId}`);
+
+  return data.results || [];           
 };

@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { Edit, Key, Lock, FileText, XCircle } from 'lucide-react-native';
+
 import {
   useFonts,
   Poppins_400Regular,
@@ -15,6 +17,7 @@ import {
 } from '@expo-google-fonts/poppins';
 import {
   Bell,
+  Eye,
   HelpCircle,
   LogOut,
   NotebookPen,
@@ -61,19 +64,47 @@ const menuItems = [
   {
     id: 'notifications',
     title: 'Change Address',
-    icon: NotebookPen,
-    color: '#3b82f6',
+    icon: Edit,
+    color: '#3b82f6', // Blue
     route: `/HelpCenter?type=${encodeURIComponent('Change Address')}` as RelativePathString,
   },
   {
     id: 'help',
     title: 'Help Center',
     icon: HelpCircle,
-    color: '#10b981',
-    route:"/HelpCenter" as RelativePathString
+    color: '#10b981', // Green
+    route: "/HelpCenter" as RelativePathString
   },
- 
+  {
+    id: 'Change Password',
+    title: 'Change Password',
+    icon: Key,
+    color: '#f59e0b', // Amber
+    route: "/ChangePasswordScreen" as RelativePathString
+  },
+  {
+    id: 'Privacy Policy',
+    title: 'Privacy Policy',
+    icon: Lock,
+    color: '#ef4444', // Red
+    route: "/HelpCenter" as RelativePathString
+  },
+  {
+    id: 'Terms And Condition',
+    title: 'Terms And Condition',
+    icon: FileText,
+    color: '#6366f1', // Indigo
+    route: "/HelpCenter" as RelativePathString
+  },
+  {
+    id: 'Cancellation Policy',
+    title: 'Cancellation Policy',
+    icon: XCircle,
+    color: '#22d3ee', // Light Blue
+    route: "/HelpCenter" as RelativePathString
+  },
 ];
+
 
 export default function AccountScreen() {
 

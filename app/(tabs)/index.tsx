@@ -15,10 +15,10 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from '@expo-google-fonts/poppins';
-import { MapPin, Bell, Search, Star, TrendingUp, ShoppingCart } from 'lucide-react-native';
-import { Link, useRouter } from 'expo-router'; // Import useRouter
+import { MapPin, Search, Star } from 'lucide-react-native';
+import {  useRouter } from 'expo-router'; // Import useRouter
 import { useEffect, useState, useRef } from 'react';
-import { BestSelling, getBestSelling } from '@/services/bestSellingService';
+import {  getBestSelling } from '@/services/bestSellingService';
 import { getNewlyAddedProducts } from '@/services/productService';
 
 // Assuming you have a categoryService
@@ -28,9 +28,7 @@ import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
 import { getQuickPicks, Product, QuickPicks } from '@/services/productService';
 import ProductCard from '../components/ProductCard';
 import Toast from 'react-native-toast-message';
-// import FeaturedVideoSection from '../components/FeaturedVideoSection';
 import { useAuthStore } from '@/store/authStore'; // adjust path if needed
-
 
 import BatchTimingCard from '../components/BatchTimingCard';
 import { useCartStore } from '@/store/cartStore';
@@ -39,11 +37,13 @@ import BannerOne from '@/assets/images/bannerOne.png';
 import BannerTwo from '@/assets/images/BannerTwo.png';
 import BannerThree from '@/assets/images/BannerThree.png';
 
-// import VideoCard from '../components/VideoCard';
+// Import the banner service
+import { getBanners, Banner } from '@/services/bannerService'; // Adjust the import path
 
 const { width } = Dimensions.get('window');
 
-const slides = [
+// Fallback slides in case API fails
+const fallbackSlides = [
   {
     id: '1',
     image: BannerOne,
@@ -52,13 +52,13 @@ const slides = [
   },
   {
     id: '2',
-    image:BannerTwo,
+    image:   BannerTwo,
     title: 'Organic Products',
     subtitle: 'Handpicked organic produce for your family',
   },
   {
     id: '3',
-    image:BannerThree,
+    image: BannerThree,
     title: 'Farm Fresh',
     subtitle: 'Direct from farms to your kitchen',
   },
@@ -75,6 +75,9 @@ export default function HomeScreen() {
   const [bestSelling, setBestSelling] = useState<Product[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Banner states
+  const [slides, setSlides] = useState<Banner[]>(fallbackSlides);
+  const [isBannersLoading, setIsBannersLoading] = useState(true);
 
   const [quickPicks, setquickPicks] = useState<QuickPicks[]>([]);
  
@@ -93,12 +96,29 @@ const [totalPages, setTotalPages] = useState(1);
 const [isLoadingMore, setIsLoadingMore] = useState(false);
 const ITEMS_PER_PAGE = 6;
 
-
   const router = useRouter(); 
 
   const { user } = useAuthStore();
  const { cartCount } = useCartStore();
 
+//  console.log("user",user);
+
+  // Load banners from API
+  useEffect(() => {
+    const loadBanners = async () => {
+      try {
+        setIsBannersLoading(true);
+        const banners = await getBanners();
+        setSlides(banners);
+      } catch (error) {
+        console.error('Failed to load banners, using fallback:', error);
+        setSlides(fallbackSlides);
+      } finally {
+        setIsBannersLoading(false);
+      }
+    };
+    loadBanners();
+  }, []);
  
   useEffect(() => {
     const interval = setInterval(() => {
@@ -111,7 +131,7 @@ const ITEMS_PER_PAGE = 6;
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [currentSlide]);
+  }, [currentSlide, slides.length]);
 
  
   useEffect(() => {
@@ -167,15 +187,7 @@ const ITEMS_PER_PAGE = 6;
   }, []);
   
 
-  const handleCategoryClick = (category: Category) => {
-   
-    
-
-    router.push({
-      pathname: '/subcategories/[categoryName]',
-      params: { categoryName: category.name }, 
-    });
-  };
+ 
 
   const openSearchOverlay = () => {
     setIsSearchOverlayVisible(true);
@@ -203,7 +215,7 @@ const ITEMS_PER_PAGE = 6;
   
 
   // Show loading indicator if fonts or categories are loading
-  if (!fontsLoaded || isquickPicksLoading) {
+  if (!fontsLoaded || isquickPicksLoading || isBannersLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#9747FF" />
@@ -220,33 +232,35 @@ const ITEMS_PER_PAGE = 6;
    
     <ScrollView  showsVerticalScrollIndicator={false}>
       
-      <View style={styles.header}>
-        <View style={styles.locationContainer}>
-          <MapPin size={20} color="#9747FF" />
-          <Text
-  style={styles.locationText}
-  numberOfLines={1}
-  ellipsizeMode="tail"
->
-  {user?.address || 'Select Location'}
-</Text>
+    <View style={styles.header}>
+  <View style={styles.headerLeft}>
+    <View style={styles.welcomeRow}>
+      <Text style={styles.hiIcon}>👋</Text>
+      <Text style={styles.welcomeText} numberOfLines={1} ellipsizeMode="tail">
+        Hi, {user?.name || 'Guest'}!
+      </Text>
+    </View>
+    <Text
+      style={styles.locationText}
+      numberOfLines={1}
+      ellipsizeMode="tail"
+    >
+      {user?.address || 'Select Location'}
+    </Text>
+  </View>
 
-        </View>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={openSearchOverlay}
-          >
-            <Search size={20} color="#64748b" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-          <CartIconWithBadge />
+  <View style={styles.headerIcons}>
+    <TouchableOpacity style={styles.iconButton} onPress={openSearchOverlay}>
+      <Search size={20} color="#64748b" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.iconButton}>
+      <CartIconWithBadge />
+    </TouchableOpacity>
+  </View>
+</View>
 
-          </TouchableOpacity>
-        </View>
-      </View>
 
-      {/* Hero Slider - ORIGINAL CODE */}
+      {/* Hero Slider - Updated to use dynamic banners */}
       <View style={styles.sliderContainer}>
         <ScrollView
           ref={scrollViewRef}
@@ -261,8 +275,11 @@ const ITEMS_PER_PAGE = 6;
           }}
         >
           {slides.map((slide, index) => (
-            <View key={index} style={styles.slide}>
-              <Image source={ slide.image } style={styles.slideImage} />
+            <View key={slide.id} style={styles.slide}>
+              <Image 
+                source={typeof slide.image === 'string' ? { uri: slide.image } : slide.image} 
+                style={styles.slideImage} 
+              />
               {/* <View style={styles.slideContent}>
                 <Text style={styles.slideTitle}>{slide.title}</Text>
                 <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
@@ -270,8 +287,6 @@ const ITEMS_PER_PAGE = 6;
             </View>
           ))}
         </ScrollView>
-
-     
 
         <View style={styles.pagination}>
           {slides.map((_, index) => (
@@ -309,6 +324,7 @@ const ITEMS_PER_PAGE = 6;
           flexWrap: 'wrap',
           justifyContent: 'space-between',
           paddingVertical: 20,
+          
         }}
       >
         {newlyAddedProducts.length > 0 ? (
@@ -322,7 +338,6 @@ const ITEMS_PER_PAGE = 6;
     </View>
   </>
 )}
-
 
       {/* <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
@@ -361,7 +376,6 @@ const ITEMS_PER_PAGE = 6;
   )}
 </View> */}
 
-
       {/* <View> */}
       {/* <VideoCard
   source="https://youtu.be/mlTS0EiWCjY?si=Ylhj58WZkxWiyDtn"
@@ -369,7 +383,6 @@ const ITEMS_PER_PAGE = 6;
   duration="11:25"
   title="Farm‑Fresh Vegetables"
 /> */}
-
 
       {/* </View> */}
 
@@ -415,7 +428,6 @@ const ITEMS_PER_PAGE = 6;
           )}
           </View>
 
-
       </View>
 
       {/* Global Search Overlay (Keep) */}
@@ -433,14 +445,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAF7FF',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
+ header: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  paddingHorizontal: 20,
+  paddingTop: 60,
+  paddingBottom: 20,
+},
+
+headerLeft: {
+  flex: 1,
+  paddingRight: 10, // ensure space between text and icons
+},
+
+welcomeRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 4,
+  flexWrap: 'nowrap',
+},
+
+hiIcon: {
+  fontSize: 24,
+  marginRight: 6,
+},
+
+welcomeText: {
+  fontFamily: 'Poppins_600SemiBold',
+  fontSize: 18,
+  color: '#1e293b',
+  flexShrink: 1,
+  maxWidth: '90%',
+},
+
+locationText: {
+  fontFamily: 'Poppins_500Medium',
+  fontSize: 14,
+  color: '#1e293b',
+  flexShrink: 1,
+  maxWidth: '90%',
+},
+
   toastWrapper: {
     position: 'absolute', // Make sure it stays on top
     top: 0,
@@ -449,17 +495,17 @@ const styles = StyleSheet.create({
     zIndex: 9999, // This will set the highest z-index
   },
   locationContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
   },
-  locationText: {
-    marginLeft: 8,
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 14, // decreased from 16
-    color: '#1e293b',
-    maxWidth: 250, // 👈 optional, can adjust based on screen
-  },
-  
+ 
+  welcomeContainer: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  marginBottom: 8, // Space between welcome and address
+   paddingLeft: 20,
+},
+
   headerIcons: {
     flexDirection: 'row',
     gap: 12,

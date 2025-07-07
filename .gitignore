@@ -26,7 +26,7 @@ yarn-error.*
 # macos
 .DS_Store
 *.pem
-
+.apk
 # local env files
 .env*.local
 .env

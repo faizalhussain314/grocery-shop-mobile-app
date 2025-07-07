@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
-import { Minus, Plus, Share2, Trash2, Scale } from 'lucide-react-native'; // Import Scale icon
+import { Minus, Plus, Share2, Trash2, Scale, ShoppingCart, Package } from 'lucide-react-native'; // Added ShoppingCart and Package icons
 import { useState, useEffect, useCallback } from 'react';
 import { getCartItems, createOrder, deleteCartItem } from '@/services/cartService'; // Assuming updateCartItem service exists or will be added
 import Constants from 'expo-constants';
@@ -91,52 +91,85 @@ const removeFromCart = useCartStore((state) => state.removeFromCart);
 
     
 
+   const detectWeightButtonStates = (quantity: number) => {
+    // Convert to fixed decimal to avoid floating point precision issues
+    const fixedQuantity = parseFloat(quantity.toFixed(3));
     
+    // Check if quantity is divisible by 0.5 (500g)
+    const is500gActive = (fixedQuantity % 0.5 === 0) && (fixedQuantity % 1 !== 0);
+    
+    // Check if quantity is divisible by 0.25 (250g) but not by 0.5
+    const remainder250 = fixedQuantity % 0.25;
+    const remainder500 = fixedQuantity % 0.5;
+    const is250gActive = (Math.abs(remainder250) < 0.001) && (Math.abs(remainder500) >= 0.001);
+    
+    return {
+        is250gSelected: is250gActive,
+        is500gSelected: is500gActive
+    };
+};
    
 
 
-    const fetchCartItems = useCallback(async (isRefresh = false) => {
-        if (!isRefresh) setIsFetching(true);
-    
-        try {
-            const data: CartItem[] = await getCartItems();
-    
-            // Filter out any items with null productId
-            const validItems = data.filter(item => item.productId !== null);
-    
-            const processedItems: CartItemWithDisplay[] = validItems.map(item => {
-                const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
-                const initialDisplayQuantity = isWeightUnit
-                    ? item.quantity / 1000
-                    : item.quantity;
-    
-                return {
-                    ...item,
-                    displayQuantity: parseFloat(initialDisplayQuantity.toFixed(3)),
-                    is250gSelected: false,
-                    is500gSelected: false,
-                };
-            });
-    
-            setItems(processedItems);
+ const fetchCartItems = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setIsFetching(true);
 
-            const productIds = processedItems.map(item => item.productId._id);
-setCartProducts(productIds);
+    try {
+        const data: CartItem[] = await getCartItems();
 
-            console.log("processedItems.length",processedItems.length)
-             setCartCount(processedItems.length);
-        } catch (error) {
-            console.error('Failed to fetch cart items:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to load cart items',
-            });
-        } finally {
-            setIsFetching(false);
-            if (isRefresh) setRefreshing(false);
-        }
-    }, []);
+        // Filter out any items with null productId
+        const validItems = data.filter(item => item.productId !== null);
+
+        const processedItems: CartItemWithDisplay[] = validItems.map(item => {
+            const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
+            
+            let initialDisplayQuantity;
+            
+            if (isWeightUnit) {
+                // For weight units (kg/g), convert grams to kg for display
+                // Backend stores in grams, so divide by 1000 to get kg
+                initialDisplayQuantity = item.quantity / 1000;
+            } else {
+                // For piece units, use the quantity as-is (can be fractional like 0.5, 0.25, 0.75)
+                // Backend might store fractional pieces (e.g., 0.5 for half piece, 0.25 for quarter piece)
+                initialDisplayQuantity = item.quantity/1000;
+            }
+
+            const displayQuantity = parseFloat(initialDisplayQuantity.toFixed(3));
+            
+            // Auto-detect button states based on quantity
+            const buttonStates = isWeightUnit ? detectWeightButtonStates(displayQuantity) : {
+                is250gSelected: false,
+                is500gSelected: false
+            };
+
+            return {
+                ...item,
+                displayQuantity,
+                is250gSelected: buttonStates.is250gSelected,
+                is500gSelected: buttonStates.is500gSelected,
+            };
+        });
+
+        setItems(processedItems);
+        
+        const productIds = processedItems.map(item => item.productId._id);
+        setCartProducts(productIds);
+
+        console.log("processedItems.length", processedItems.length);
+        setCartCount(processedItems.length);
+    } catch (error) {
+        console.error('Failed to fetch cart items:', error);
+        Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Failed to load cart items',
+        });
+    } finally {
+        setIsFetching(false);
+        if (isRefresh) setRefreshing(false);
+    }
+}, []);
     
 
     useFocusEffect(
@@ -156,85 +189,99 @@ setCartProducts(productIds);
         fetchCartItems(true); 
     }, [fetchCartItems]); 
   
-    const handleQuantityChange = (id: string, change: number) => {
-        setItems(currentItems => {
-            return currentItems.map(item => {
-                if (item._id === id) {
-                    const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
-                   
-                    const increment = isWeightUnit ? 1 : 1; 
-                    let newQuantity = item.displayQuantity + (change * increment);
+  const handleQuantityChange = (id: string, change: number) => {
+    setItems(currentItems => {
+        return currentItems.map(item => {
+            if (item._id === id) {
+                const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
+               
+                const increment = isWeightUnit ? 1 : 1; 
+                
+                const currentDisplayQuantity = item.displayQuantity || (item.quantity / 1000);
+                let newQuantity = currentDisplayQuantity + (change * increment);
 
-                    if (isWeightUnit) {
-                      
-                         newQuantity = Math.max(0, parseFloat(newQuantity.toFixed(3)));
-                        
-                         if (newQuantity === 0) {
-                            return { ...item, displayQuantity: newQuantity, is250gSelected: false, is500gSelected: false };
-                         }
-                         return { ...item, displayQuantity: newQuantity };
-                    } else { 
-                        
-                         newQuantity = Math.max(1, newQuantity);
-                         return { ...item, displayQuantity: newQuantity };
-                    }
+                if (isWeightUnit) {
+                     newQuantity = Math.max(0, parseFloat(newQuantity.toFixed(3)));
+                    
+                     if (newQuantity === 0) {
+                        return { 
+                            ...item, 
+                            displayQuantity: newQuantity, 
+                            is250gSelected: false, 
+                            is500gSelected: false 
+                        };
+                     }
+                     
+                
+                     const buttonStates = detectWeightButtonStates(newQuantity);
+                     
+                     return { 
+                         ...item, 
+                         displayQuantity: newQuantity,
+                         is250gSelected: buttonStates.is250gSelected,
+                         is500gSelected: buttonStates.is500gSelected
+                     };
+                } else { 
+                     newQuantity = Math.max(1, newQuantity);
+                     return { ...item, displayQuantity: newQuantity };
                 }
-                return item;
-            });
+            }
+            return item;
         });
-         
-    };
+    });
+};
 
     
-     const handleToggleWeight = (id: string, weightInGrams: 250 | 500) => {
-         const weightInKg = weightInGrams / 1000; 
-         setItems(currentItems => {
-             return currentItems.map(item => {
-                 if (item._id === id) {
-                      const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
-                 
-                     if (isWeightUnit) {
-                          const isCurrentlySelected = weightInGrams === 250 ? item.is250gSelected : item.is500gSelected;
-                          let newQuantity = item.displayQuantity;
+    const handleToggleWeight = (id: string, weightInGrams: 250 | 500) => {
+    const weightInKg = weightInGrams / 1000; 
+    setItems(currentItems => {
+        return currentItems.map(item => {
+            if (item._id === id) {
+                 const isWeightUnit = item.productId.unit === 'kg' || item.productId.unit === 'g';
+            
+                if (isWeightUnit) {
+                     // Use existing displayQuantity or calculate from quantity if it doesn't exist
+                     const currentDisplayQuantity = item.displayQuantity || (item.quantity / 1000);
+                     const currentIs250gSelected = item.is250gSelected || false;
+                     const currentIs500gSelected = item.is500gSelected || false;
+                     
+                     const isCurrentlySelected = weightInGrams === 250 ? currentIs250gSelected : currentIs500gSelected;
+                     let newQuantity = currentDisplayQuantity;
 
-                          if (isCurrentlySelected) {
-                           
-                             newQuantity = Math.max(0, parseFloat((item.displayQuantity - weightInKg).toFixed(3)));
-                          } else {
-                             
-                             newQuantity = parseFloat((item.displayQuantity + weightInKg).toFixed(3));
-                          }
-
-                          
-                           const newIs250gSelected = weightInGrams === 250 ? !isCurrentlySelected : item.is250gSelected;
-                           const newIs500gSelected = weightInGrams === 500 ? !isCurrentlySelected : item.is500gSelected;
-
-                           
-                           if (newQuantity === 0) {
-                               return {
-                                   ...item,
-                                   displayQuantity: 0,
-                                   is250gSelected: false,
-                                   is500gSelected: false
-                               };
-                           }
-
-
-                         return {
-                              ...item,
-                             displayQuantity: newQuantity,
-                              is250gSelected: newIs250gSelected,
-                             is500gSelected: newIs500gSelected,
-                          };
+                     if (isCurrentlySelected) {
+                        // Remove the weight
+                        newQuantity = Math.max(0, parseFloat((currentDisplayQuantity - weightInKg).toFixed(3)));
+                     } else {
+                      
+                        newQuantity = parseFloat((currentDisplayQuantity + weightInKg).toFixed(3));
                      }
+
                     
-                     return item;
-                 }
-                 return item;
-             });
-         });
-         
-     };
+                     if (newQuantity === 0) {
+                         return {
+                             ...item,
+                             displayQuantity: 0,
+                             is250gSelected: false,
+                             is500gSelected: false
+                         };
+                     }
+                     
+                     const buttonStates = detectWeightButtonStates(newQuantity);
+
+                    return {
+                         ...item,
+                        displayQuantity: newQuantity,
+                         is250gSelected: buttonStates.is250gSelected,
+                        is500gSelected: buttonStates.is500gSelected,
+                     };
+                }
+               
+                return item;
+            }
+            return item;
+        });
+    });
+};
 
 
     const handleRemoveItem = async  (id: string) => {
@@ -291,29 +338,23 @@ const productId = itemToRemove.productId._id;
     );
 
   
+    const calculateItemPrice = (item: CartItemWithDisplay): number => {
+        if (!item.productId || item.displayQuantity === undefined) {
+            return 0;
+        }
+
+        // if (item.productId.unit === 'piece') {
+        //     const quantityForCalculation = Math.max(1, item.displayQuantity);
+        //     return item.productId.price * quantityForCalculation;
+        // } else {
+            const quantityIn500gUnits = item.displayQuantity / 1;
+            if (item.displayQuantity <= 0) return 0;
+            return item.productId.price * quantityIn500gUnits;
+        // }
+    };
+
     const calculateTotal = (): number => {
-        return filteredItems.reduce(
-            (sum, item) => {
-                if (!item.productId || item.displayQuantity === undefined) {
-                     console.warn("Skipping item in total calculation due to missing data:", item);
-                     return sum; 
-                }
-
-                if (item.productId.unit === 'piece') {
-                   
-                    const quantityForCalculation = Math.max(1, item.displayQuantity); 
-                    return sum + item.productId.price * quantityForCalculation;
-                } else {
-                  
-                    const quantityIn500gUnits = item.displayQuantity / 1;
-                  
-                     if (item.displayQuantity <= 0) return sum; 
-
-                    return sum + item.productId.price * quantityIn500gUnits;
-                }
-            },
-            0
-        );
+        return filteredItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
     };
 
     // --- Checkout Logic ---
@@ -345,7 +386,7 @@ const productId = itemToRemove.productId._id;
             const orderItems = items.map(item => {
                 let quantityToSend;
                 if (item.productId.unit === 'piece') {
-                    quantityToSend = Math.max(1, item.displayQuantity); 
+                    quantityToSend =  item.displayQuantity; 
                 } else {
                     
                     quantityToSend = Math.round(item.displayQuantity * 1000);
@@ -374,7 +415,8 @@ const productId = itemToRemove.productId._id;
            
             const totalPrice = calculateTotal();
 
-           
+            // return console.log("orderItems", orderItems , totalPrice)
+
             const orderResponse: OrderResponse = await createOrder(orderItems, totalPrice);
            
 
@@ -385,8 +427,14 @@ const productId = itemToRemove.productId._id;
                 text2: 'Order placed successfully!',
             });
 
-            // Clear cart locally and navigate
+               items.forEach(item => {
+    const productId = item.productId._id;
+    removeFromCart(productId);
+});
+           
             setItems([]); // Clear local cart state after successful order
+         
+
             router.push({ pathname: '/thank-you', params: { orderId: orderResponse.orderId } });
             
 
@@ -455,7 +503,22 @@ const productId = itemToRemove.productId._id;
 
                 <View style={styles.cartItems}>
                     {filteredItems.length === 0 ? (
-                        <Text style={styles.emptyCartText}>Your cart is empty!</Text>
+                        <View style={styles.emptyCartContainer}>
+                            <View style={styles.emptyCartIconContainer}>
+                                <ShoppingCart size={80} color="#cbd5e1" />
+                            </View>
+                            <Text style={styles.emptyCartTitle}>Your cart is empty</Text>
+                            <Text style={styles.emptyCartSubtitle}>
+                                Looks like you haven't added anything to your cart yet
+                            </Text>
+                            <TouchableOpacity 
+                                style={styles.continueShoppingButton}
+                                onPress={() => router.push('/(tabs)')}
+                            >
+                                <Package size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                                <Text style={styles.continueShoppingText}>Continue Shopping</Text>
+                            </TouchableOpacity>
+                        </View>
                     ) : (
                         filteredItems.map((item , index) => (
                             <View key={index} style={styles.cartItem}>
@@ -577,6 +640,33 @@ const productId = itemToRemove.productId._id;
                 {filteredItems.length > 0 && (
                     <View style={styles.summary}>
                         <Text style={styles.summaryTitle}>Order Summary</Text>
+                        
+                        {/* Item breakdown */}
+                        {filteredItems.map((item, index) => {
+                            const itemTotal = calculateItemPrice(item);
+                            const displayQuantity = item.productId.unit === 'piece' 
+                                ? item.displayQuantity 
+                                : formatKg(item.displayQuantity);
+                            const unit = item.productId.unit === 'piece' 
+                                ? (item.displayQuantity === 1 ? 'pc' : 'pcs')
+                                : 'kg';
+                            
+                            return (
+                                <View key={index} style={styles.summaryRow}>
+                                    <View style={styles.summaryItemLeft}>
+                                        <Text style={styles.summaryItemName} numberOfLines={1}>
+                                            {item.productId.name}
+                                        </Text>
+                                        <Text style={styles.summaryItemDetails}>
+                                            {displayQuantity} {unit} × ₹{item.productId.price.toFixed(2)}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.summaryItemPrice}>
+                                        ₹{itemTotal.toFixed(2)}
+                                    </Text>
+                                </View>
+                            );
+                        })}
                        
                         <View style={[styles.summaryRow, styles.totalRow]}>
                             <Text style={styles.totalLabel}>Total</Text>
@@ -683,6 +773,55 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20, // Horizontal padding for the list
         paddingBottom: 20, // Add some bottom padding
     },
+    // Enhanced Empty Cart Styles
+    emptyCartContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 40,
+    },
+    emptyCartIconContainer: {
+        backgroundColor: '#f8fafc',
+        borderRadius: 50,
+        padding: 30,
+        marginBottom: 24,
+        borderWidth: 2,
+        borderColor: '#e2e8f0',
+        borderStyle: 'dashed',
+    },
+    emptyCartTitle: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 24,
+        color: '#1e293b',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    emptyCartSubtitle: {
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 16,
+        color: '#64748b',
+        textAlign: 'center',
+        lineHeight: 24,
+        marginBottom: 32,
+    },
+    continueShoppingButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#9747FF',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+        elevation: 2,
+        shadowColor: '#9747FF',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+    continueShoppingText: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 16,
+        color: '#ffffff',
+    },
     cartItem: {
         flexDirection: 'row',
         backgroundColor: '#ffffff',
@@ -747,124 +886,108 @@ const styles = StyleSheet.create({
         padding: 4,
     },
      quantityButton: {
-         padding: 6, // Smaller padding than expanded buttons
-         backgroundColor: '#ffffff',
-         borderRadius: 8,
-         alignItems: 'center',
-         justifyContent: 'center',
-          minWidth: 30, // Ensure tap area
-          minHeight: 30,
-         shadowColor: '#000',
-         shadowOffset: { width: 0, height: 1 },
-         shadowOpacity: 0.05,
-         shadowRadius: 2,
-         elevation: 1,
-     },
-     quantityButtonDisabled: {
-         backgroundColor: '#e2e8f0', // Lighter background when disabled
-          shadowOpacity: 0,
-         elevation: 0,
-     },
-    quantity: {
-        fontFamily: 'Poppins_500Medium',
-        fontSize: 15, // Match item name font size
-        color: '#1e293b',
-        marginHorizontal: 12, // Reduced margin
+        padding: 6, // Smaller padding than expanded buttons
+        backgroundColor: '#ffffff',
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 32,
+        minHeight: 32,
     },
-     kgUnit: { // Style for the 'kg' unit inside quantity
-         fontFamily: "Poppins_400Regular",
-         fontSize: 11,
-         color: '#475569',
-         marginLeft: 1,
-     },
-
-    // --- Expanded Quantity Controls (Visible when expanded) ---
-    // expandedQuantityControls: {
-    //     flexDirection: 'column', // Stack buttons vertically
-    //     alignItems: 'flex-end', // Align controls to the right
-    //      borderRadius: 12,
-    //      paddingVertical: 4, // Add some vertical padding if background is used
-    //      paddingHorizontal: 8, // Add some horizontal padding
-    // },
+    quantityButtonDisabled: {
+        backgroundColor: '#f8fafc',
+        opacity: 0.5,
+    },
+    simpleQuantityText: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 14,
+        color: '#1e293b',
+        marginHorizontal: 12,
+        minWidth: 40,
+        textAlign: 'center',
+    },
+    // --- Expanded Quantity Controls ---
     incrementSelectorRow: {
         flexDirection: 'row',
-        marginBottom: 8, // Space between weight toggles and +/- row
-        gap: 8, // Space between 250g and 500g buttons
+        alignItems: 'center',
+        marginBottom: 8,
+        gap: 8,
     },
-     // Reuse or adapt styles from ProductCard incrementButton
-     incrementButton: {
-         flexDirection: 'row', // Arrange icon and text horizontally
-         alignItems: 'center',
-         paddingVertical: 4, // Smaller padding for cart view
-         paddingHorizontal: 10,
-         borderRadius: 12, // Rounded corners
-         borderWidth: 1,
-         borderColor: '#cbd5e1',
-         backgroundColor: '#FAF7FF', // Light background
-     },
-     incrementButtonActive: { // Style for selected 250/500g buttons
-         borderColor: '#4CAF50',
-         backgroundColor: '#C8E6C9',
-     },
-     incrementButtonIcon: {
-         marginRight: 4, // Space between icon and text
-     },
-     incrementButtonText: {
-         fontFamily: "Poppins_500Medium",
-         fontSize: 11, // Smaller font
-         color: '#475569',
-     },
-     incrementButtonTextActive: { // Style for text in selected buttons
-         color: '#388E3C',
-     },
-
+    incrementButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f1f5f9',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    incrementButtonActive: {
+        backgroundColor: '#e8f5e8',
+        borderColor: '#4ade80',
+    },
+    incrementButtonIcon: {
+        marginRight: 4,
+    },
+    incrementButtonText: {
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 12,
+        color: '#475569',
+    },
+    incrementButtonTextActive: {
+        color: '#388E3C',
+        fontFamily: 'Poppins_500Medium',
+    },
     quantitySelectorRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 8,
-        overflow: 'hidden',
+        backgroundColor: '#f1f5f9',
+        borderRadius: 12,
+        padding: 4,
     },
-     // Reuse or adapt styles from ProductCard quantityControlButton
-     quantityControlButton: {
-         paddingVertical: 8, // Slightly less padding than ProductCard
-         paddingHorizontal: 10,
-         alignItems: 'center',
-         justifyContent: 'center',
-         minWidth: 36, // Ensure decent tap area
-     },
+    quantityControlButton: {
+        padding: 8,
+        backgroundColor: '#ffffff',
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 36,
+        minHeight: 36,
+    },
     decrementButton: {
-        borderRightWidth: 1,
-        borderColor: '#e2e8f0',
+        // Specific styles for decrement button if needed
+    },
+    incrementButtonQty: {
+        // Specific styles for increment button if needed
     },
     quantityDisplay: {
-         alignItems: 'center',
-         justifyContent: 'center',
-         paddingHorizontal: 12, // Padding inside the display area
-     },
-     quantityText: { // Style for the main number in expanded view
-         fontFamily: "Poppins_600SemiBold",
-         fontSize: 15, // Match item name font size
-         color: '#1e293b',
-     },
-     incrementButtonQty: { // Style for the '+' button in expanded view
-         borderLeftWidth: 1,
-         borderColor: '#e2e8f0',
-     },
-
-
+        backgroundColor: '#ffffff',
+        borderRadius: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        marginHorizontal: 8,
+        minWidth: 60,
+        alignItems: 'center',
+    },
+    quantityText: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 14,
+        color: '#1e293b',
+        textAlign: 'center',
+    },
+    // --- Summary Styles ---
     summary: {
         backgroundColor: '#ffffff',
+        marginHorizontal: 20,
+        marginBottom: 20,
         borderRadius: 16,
-        marginHorizontal: 20, // Match item horizontal padding
-        marginBottom: 16, // Space before footer or end of scroll
         padding: 20,
-        shadowColor: "#94a3b8", // Add subtle shadow
-        shadowOffset: { width: 0, height: 1 },
+        shadowColor: "#94a3b8",
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+        shadowRadius: 4,
+        elevation: 3,
     },
     summaryTitle: {
         fontFamily: 'Poppins_600SemiBold',
@@ -875,52 +998,81 @@ const styles = StyleSheet.create({
     summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 10, // Reduced margin
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
+    summaryItemLeft: {
+        flex: 1,
+        marginRight: 12,
+    },
+    summaryItemName: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 14,
+        color: '#1e293b',
+        marginBottom: 2,
+    },
+    summaryItemDetails: {
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 12,
+        color: '#64748b',
+    },
+    summaryItemPrice: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 14,
+        color: '#1e293b',
     },
     totalRow: {
-        marginTop: 10, // Reduced margin
-        paddingTop: 10,
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
+        borderTopColor: '#e2e8f0',
+        paddingTop: 12,
+        marginTop: 8,
+        marginBottom: 0,
     },
     totalLabel: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 16,
+        fontSize: 18,
         color: '#1e293b',
     },
     totalValue: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 20,
+        fontSize: 18,
         color: '#9747FF',
     },
+    // --- Footer Styles ---
     footer: {
-        paddingHorizontal: 20, // Match item horizontal padding
-        paddingTop: 12, // Padding above button
-        paddingBottom: 20, // Padding below button
-        backgroundColor: '#ffffff', // White background for footer
+        backgroundColor: '#ffffff',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        paddingBottom: Math.max(16, Constants.statusBarHeight || 0), // Add safe area padding
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
+        borderTopColor: '#e2e8f0',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 5,
     },
     checkoutButton: {
-        backgroundColor: '#9747FF', // Green color
-        paddingVertical: 14, // Adjusted padding
-        borderRadius: 12, // Match other rounded elements
+        backgroundColor: '#9747FF',
+        paddingVertical: 16,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: '#9747FF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+        minHeight: 52,
     },
     checkoutButtonDisabled: {
-        backgroundColor: '#94a3b8', // Grey color when disabled
+        backgroundColor: '#94a3b8',
+        shadowOpacity: 0,
+        elevation: 0,
     },
     checkoutText: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 16,
         color: '#ffffff',
     },
-     emptyCartText: {
-         fontFamily: 'Poppins_600SemiBold',
-         fontSize: 18,
-         color: '#64748b', // Grey color for empty state
-         textAlign: 'center',
-         marginTop: 40, // More space from top
-     },
 });

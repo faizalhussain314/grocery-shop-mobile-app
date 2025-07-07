@@ -286,9 +286,9 @@ export default function ProductScreen() {
               <ArrowLeft size={20} color="#64748b" />
             </TouchableOpacity>
           </Link>
-          <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
+          {/* <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
             <Share2 size={20} color="#64748b" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <Image

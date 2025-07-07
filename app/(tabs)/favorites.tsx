@@ -27,6 +27,8 @@ const getStatusColor = (status: string) => {
       return "#f97316"; 
     case "delivered":
       return "#9747FF"; 
+    case "completed":
+      return "#3dff40";
     default:
       return "#6b7280"; 
   }
@@ -40,43 +42,39 @@ export default function OrdersScreen() {
   });
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [refreshing, setRefreshing] = useState(false); // ✅ new state
+  const [refreshing, setRefreshing] = useState(false);
 
-const fetchOrders = async () => {
-  try {
-    const data = await getOrders();
-    setOrders(data);
-  } catch (error) {
-    console.error(error);
-  }
-};
+  const fetchOrders = async () => {
+    try {
+      const data = await getOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
-const handleRefresh = async () => {
-  setRefreshing(true); // ✅ start spinner
-  await fetchOrders(); // ✅ re-fetch orders
-  setRefreshing(false); // ✅ stop spinner
-};
-
-useEffect(() => {
-  fetchOrders(); // ✅ initial fetch
-}, []);
-
-
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchOrders();
+    setRefreshing(false);
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const data = await getOrders();
-        setOrders(data);
-        console.log("data",data[0].items)
-      } catch (error) {
-        console.error(error);
-      }
-    };
     fetchOrders();
   }, []);
 
   if (!fontsLoaded) return null;
+
+  // Empty state component
+  const EmptyOrdersComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Package size={64} color="#cbd5e1" />
+      <Text style={styles.emptyTitle}>No Orders Available</Text>
+      <Text style={styles.emptySubtitle}>
+        You haven't placed any orders yet. Start shopping to see your orders here!
+      </Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -87,7 +85,11 @@ useEffect(() => {
       <FlatList
         data={orders}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          orders.length === 0 && styles.emptyListContent
+        ]}
+        ListEmptyComponent={EmptyOrdersComponent}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.orderCard}>
             <View style={styles.orderHeader}>
@@ -114,17 +116,28 @@ useEffect(() => {
               </View>
             </View> 
 
-            <View style={styles.itemsList}>
-              {item.items.map((orderItem, index) => (
-                <View key={index} style={styles.orderItem}>
-                  <Package size={16} color="#64748b" />
-                  <Text style={styles.itemText}>
-                    {orderItem.quantity/1000} kg ×
-                    {orderItem.productId?.name ?? 'Unknown Product'}
-                  </Text>
-                </View>
-              ))}
-            </View>
+           <View style={styles.itemsList}>
+  {item.items.map((orderItem, index) => {
+    const quantityDisplay =
+      orderItem.productId?.unit === 'piece'
+        ? orderItem.quantity
+        : (orderItem.quantity / 1000).toFixed(3);
+
+    const unitLabel = orderItem.productId?.unit === 'piece' ? 'pcs' : 'kg';
+
+    return (
+      <View style={styles.orderItem} key={index}>
+        <Package size={16} color="#64748b" />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.itemText} numberOfLines={2}>
+            {quantityDisplay} {unitLabel} × {orderItem.productId?.name ?? 'Unknown Product'}
+          </Text>
+        </View>
+      </View>
+    );
+  })}
+</View>
+
 
             <View style={styles.orderFooter}>
               <View>
@@ -138,8 +151,8 @@ useEffect(() => {
             </View>
           </TouchableOpacity>
         )}
-        refreshing={refreshing}       // ✅ this shows the spinner
-  onRefresh={handleRefresh} 
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
       />
     </View>
   );
@@ -163,6 +176,32 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
+  },
+  emptyListContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 20,
+    color: '#64748b',
+    marginTop: 20,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 24,
   },
   orderCard: {
     backgroundColor: '#ffffff',

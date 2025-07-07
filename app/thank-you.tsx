@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, BackHandler } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import LottieView from 'lottie-react-native';
-import { useRef, useEffect } from 'react'; // Import useEffect
+import { useRef, useEffect, useCallback } from 'react';
 
+// Import your custom hook
+import { useBackRedirect } from './hooks/useBackRedirect'; // Adjust path as needed
 
 export default function ThankYouScreen() {
    const [fontsLoaded] = useFonts({
@@ -15,19 +17,30 @@ export default function ThankYouScreen() {
 
    // Use useLocalSearchParams to get all parameters first
    const params = useLocalSearchParams();
-
-   // Destructure orderId from the parameters, it might be undefined
-   const orderId = params.orderId as string | undefined; // Add type assertion for clarity
-
-
+   const orderId = params.orderId as string | undefined;
    const animationRef = useRef<LottieView>(null);
 
-    // Log the received parameters when the component mounts
-    useEffect(() => {
-      console.log('ThankYouScreen received params:', params);
-      console.log('ThankYouScreen orderId:', orderId);
-    }, [params, orderId]); // Log when params or orderId change
+   // Use the custom hook to handle back navigation
+   useBackRedirect('/(tabs)');
 
+   // Log the received parameters when the component mounts
+   useEffect(() => {
+     console.log('ThankYouScreen received params:', params);
+     console.log('ThankYouScreen orderId:', orderId);
+   }, [params, orderId]);
+
+   // Handle home button press to clear navigation stack
+   const handleHomePress = useCallback(() => {
+     // Use router.push with reset to clear the navigation stack
+     router.dismissAll();
+     router.replace('/(tabs)');
+   }, []);
+
+   // Handle track order button press
+   const handleTrackOrderPress = useCallback(() => {
+     router.dismissAll();
+     router.replace('/(tabs)/favorites');
+   }, []);
 
    if (!fontsLoaded) return null;
 
@@ -51,29 +64,25 @@ export default function ThankYouScreen() {
        </Text>
 
        {/* Display the order number if available */}
-       {/* Check if orderId exists and is a string */}
        {orderId && typeof orderId === 'string' ? (
-         <Text style={styles.orderNumberText}>Your Order Number is: <Text style={styles.orderNumberValue}>{orderId}</Text></Text>
+         <Text style={styles.orderNumberText}>
+           Your Order Number is: <Text style={styles.orderNumberValue}>{orderId}</Text>
+         </Text>
        ) : (
          <Text style={styles.orderNumberText}>Order number not available.</Text>
        )}
-
 
        <Text style={styles.estimatedDelivery}>Estimated delivery: 6 AM - 7 AM</Text>
 
        {/* Buttons */}
        <View style={styles.buttons}>
-         <Link href="/(tabs)" asChild>
-           <TouchableOpacity style={styles.homeButton}>
-             <Text style={styles.homeButtonText}>Back to Home</Text>
-           </TouchableOpacity>
-         </Link>
-          {/* Link to favorites screen - keep as provided */}
-          <Link href="/(tabs)/favorites" asChild>
-            <TouchableOpacity style={styles.trackButton}>
-              <Text style={styles.trackButtonText}>Track Order</Text>
-            </TouchableOpacity>
-          </Link>
+         <TouchableOpacity style={styles.homeButton} onPress={handleHomePress}>
+           <Text style={styles.homeButtonText}>Back to Home</Text>
+         </TouchableOpacity>
+         
+         <TouchableOpacity style={styles.trackButton} onPress={handleTrackOrderPress}>
+           <Text style={styles.trackButtonText}>Track Order</Text>
+         </TouchableOpacity>
        </View>
      </View>
    );
@@ -106,7 +115,7 @@ export default function ThankYouScreen() {
        marginBottom: 24,
        lineHeight: 24,
      },
-     orderNumber: { // This style was used in the previous turn, keeping it for reference
+     orderNumber: {
        fontFamily: 'Poppins_500Medium',
        fontSize: 18,
        color: '#1e293b',
@@ -144,7 +153,6 @@ export default function ThankYouScreen() {
        fontSize: 16,
        color: '#1e293b',
      },
-      // Keeping the styles for the order number display block
      orderNumberText: {
         fontFamily: 'Poppins_400Regular',
         fontSize: 18,
@@ -155,6 +163,6 @@ export default function ThankYouScreen() {
       orderNumberValue: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 20,
-        color: '#1e293b', // Or a distinct color
+        color: '#1e293b',
       }
    });

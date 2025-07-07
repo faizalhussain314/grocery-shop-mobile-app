@@ -29,6 +29,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       await SecureStore.deleteItemAsync('token');
+      await SecureStore.deleteItemAsync('user');
       // Handle logout or token refresh here
     }
     return Promise.reject(error);
