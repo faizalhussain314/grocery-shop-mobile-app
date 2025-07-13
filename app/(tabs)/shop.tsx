@@ -23,6 +23,7 @@ import ProductCard from "../components/ProductCard";
 import GlobalSearchOverlay from "../components/GlobalSearchOverlay";
 import Toast from "react-native-toast-message";
 import CartIconWithBadge from "../components/CartIconWithBadge";
+import { useBackRedirect } from "@/hooks/useBackRedirect";
 
 export default function ProductsScreen() {
   const [fontsLoaded] = useFonts({
@@ -44,6 +45,9 @@ export default function ProductsScreen() {
   const ITEMS_PER_PAGE = 10;
 
   const router = useRouter();
+
+
+ 
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -82,7 +86,7 @@ export default function ProductsScreen() {
     console.log('Category clicked:',category.name ,  category.id);
     router.push({
       pathname: '/subcategories/[categoryId]',
-      params: { categoryId: category.id },
+      params: { categoryId: category.id , categoryName: category.name },
     });
   };
 

@@ -8,6 +8,7 @@ import { getSubcategoriesByCategoryId, Subcategory } from '@/services/subcategor
 import { ArrowLeft, Search } from 'lucide-react-native'; // Import back icon
 import GlobalSearchOverlay from '../components/GlobalSearchOverlay';
 import CartIconWithBadge from '../components/CartIconWithBadge';
+import { useBackRedirect } from '@/hooks/useBackRedirect';
 
 const BASE_URL = Constants?.expoConfig?.extra?.VITE_WEB_URL ?? "";
 const { width } = Dimensions.get('window'); 
@@ -31,6 +32,8 @@ export default function SubcategoryListPage() {
     const [error, setError] = useState<string | null>(null);
     const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
 
+
+     useBackRedirect("/shop")
     useEffect(() => {
         const fetchSubcategories = async () => {
             if (!categoryId) {
@@ -172,7 +175,7 @@ export default function SubcategoryListPage() {
   ))
 ) : (
   <Text style={styles.emptyText}>
-    No subcategories found for "{categoryId}".
+    No subcategories found for "{categoryName}".
   </Text>
 )}
 

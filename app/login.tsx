@@ -39,7 +39,7 @@ export default function LoginScreen() {
     return null;
   }
 
- const handleLogin = async (event: any) => {
+const handleLogin = async (event: any) => {
   event.preventDefault();
   setError('');
 
@@ -71,10 +71,26 @@ export default function LoginScreen() {
   });
 
   try {
-    const user = await login(phoneNumber, password); // this will throw on failure
- if (user?.role !== 'customer') {
-    throw new Error('Only customers are allowed to log in.');
-  }
+    const user = await login(phoneNumber, password);
+    console.log("user", user);
+    
+    // Check if user role is customer
+    if (user?.role !== 'customer') {
+      const errorMessage = 'Only customers are allowed to log in.';
+      setError(errorMessage);
+      
+      Toast.hide();
+      Toast.show({
+        type: 'error',
+        text1: 'Access Denied',
+        text2: errorMessage,
+      });
+      
+      // Logout the user to clear any stored data
+      await useAuthStore.getState().logout();
+      return;
+    }
+    
     Toast.hide();
     Toast.show({
       type: 'success',
@@ -82,7 +98,9 @@ export default function LoginScreen() {
       text2: 'Welcome back 👋',
     });
 
-    // router.replace('/(tabs)');
+    // Navigate to tabs only after successful customer login
+    router.replace('/(tabs)');
+    
   } catch (err: any) {
     Toast.hide();
 
@@ -90,13 +108,10 @@ export default function LoginScreen() {
 
     if (err?.response?.status === 401 || err?.response?.status === 403) {
       errorMessage = 'Invalid phone number or password.';
-     
     } else if (err?.response?.status >= 500) {
       errorMessage = 'An error occurred on our end. Please try again later.';
-    
     } else if (err?.message) {
       errorMessage = err.message;
-      
     }
 
     setError(errorMessage);
