@@ -23,10 +23,12 @@ const getStatusColor = (status: string) => {
       return "#6366f1"; 
     case "ready":
       return "#14b8a6"; 
-    case "dispatch":
+    case "dispatch": 
       return "#f97316"; 
     case "delivered":
       return "#9747FF"; 
+    case "collected":
+      return "#ffb700"; 
     case "completed":
       return "#3dff40";
     default:

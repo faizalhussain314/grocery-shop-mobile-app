@@ -1,42 +1,44 @@
 {
   "expo": {
-    "name": "ktruck",
+    "name": "Kadai2Manai",
     "slug": "K-truck",
     "version": "1.0.0",
     "android": {
       "package": "com.quantumcraft.ktruck",
-      "versionCode": 1 ,
-       "jsEngine": "hermes",
-        "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.jpeg",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/vendorapp.png",
         "backgroundColor": "#8B5CF6"
       }
     },
-     "statusBar": {
-      "style": "dark",
+    "splash": {
+      "image": "./assets/images/vendorapp.png",
+      "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "orientation": "portrait",
-    "icon": "./assets/images/icon.jpeg",
+    "icon": "./assets/images/vendorapp.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
-    
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",[
-      "expo-secure-store",
-      {
-        "configureAndroidBackup": true,
-        "faceIDPermission": "Allow $(PRODUCT_NAME) to access your Face ID biometric data."
-      }]
+      "expo-router",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access your Face ID biometric data."
+        }
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true

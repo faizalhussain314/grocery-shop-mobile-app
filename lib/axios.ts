@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
-const baseURL = Constants.expoConfig?.extra?.apiBaseUrl || 'https://testdata-iv63.onrender.com/v1/';
+const baseURL = Constants.expoConfig?.extra?.apiBaseUrl || 'https://backend.kadai2manai.com/v1/';
 
 export const api = axios.create({
   baseURL,

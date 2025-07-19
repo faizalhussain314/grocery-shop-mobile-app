@@ -123,7 +123,9 @@ export default function ContactSupportScreen() {
           </Link>
         </View>
       </View>
-      {successVisible && (
+     
+</ScrollView>
+ {successVisible && (
   <View style={styles.modalOverlay}>
     <View style={styles.modalContent}>
       <Text style={styles.modalTitle}>Success!</Text>
@@ -137,7 +139,6 @@ export default function ContactSupportScreen() {
     </View>
   </View>
 )}
-</ScrollView>
     </View>
    
   );

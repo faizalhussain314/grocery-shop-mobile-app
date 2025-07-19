@@ -57,7 +57,7 @@ export const createOrder = async (items: Array<{ productId: string; quantity: nu
     return response.data;
   } catch (error: any) {
     console.error('Error creating order:', error.response?.data || error.message);
-    throw new Error('Failed to create order');
+     throw error;
   }
 };
 

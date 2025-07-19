@@ -87,21 +87,14 @@ const menuItems = [
     title: 'Privacy Policy',
     icon: Lock,
     color: '#ef4444', // Red
-    route: "/HelpCenter" as RelativePathString
+    route: "https://backend.kadai2manai.com/privacy-policy"
   },
   {
     id: 'Terms And Condition',
     title: 'Terms And Condition',
     icon: FileText,
     color: '#6366f1', // Indigo
-    route: "/HelpCenter" as RelativePathString
-  },
-  {
-    id: 'Cancellation Policy',
-    title: 'Cancellation Policy',
-    icon: XCircle,
-    color: '#22d3ee', // Light Blue
-    route: "/HelpCenter" as RelativePathString
+    route: "https://backend.kadai2manai.com/terms"
   },
 ];
 
@@ -168,12 +161,15 @@ const vendorInitials =
     }
   };
 
-  const handleMenuPress = (route?: RelativePathString) => {
-    if (route) {
-    
-      router.push(route);
-    }
-  };
+const handleMenuPress = (route?: string) => {
+  if (!route) return;
+
+  if (route.startsWith('http')) {
+    Linking.openURL(route);
+  } else {
+    router.push(route as RelativePathString);
+  }
+};
 
   if (!fontsLoaded || loadingProfile) {
         return (

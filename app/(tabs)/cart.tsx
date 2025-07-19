@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { Minus, Plus, Share2, Trash2, Scale, ShoppingCart, Package } from 'lucide-react-native'; // Added ShoppingCart and Package icons
 import { useState, useEffect, useCallback } from 'react';
@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCartStore } from '@/store/cartStore';
+import axios from 'axios';
 
 
 const formatKg = (kg: number): string => {
@@ -439,21 +440,38 @@ const productId = itemToRemove.productId._id;
             
 
         } catch (error: unknown) {
-            if (error instanceof Error) {
-                console.error('Error during checkout:', error.message);
-                Toast.show({
-                    type: 'error',
-                    text1: 'Checkout Failed',
-                    text2: error.message || 'An error occurred.',
-                });
-            } else {
-                console.error('Unknown error during checkout', error);
-                Toast.show({
-                    type: 'error',
-                    text1: 'Checkout Failed',
-                    text2: 'An unknown error occurred.',
-                });
-            }
+           
+setIsLoading(false); // Ensure loading state is reset early in catch
+
+
+    if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const serverMessage = error.response?.data?.message || 'An error occurred.';
+
+        if (status === 409) {
+            Alert.alert(
+                'Stock Issue',
+                serverMessage
+            );
+        } else if (status === 400 || status === 422) {
+            Alert.alert(
+                'Invalid Order',
+                serverMessage
+            );
+        } else {
+            Toast.show({
+                type: 'error',
+                text1: 'Checkout Failed',
+                text2: serverMessage,
+            });
+        }
+    } else {
+        Toast.show({
+            type: 'error',
+            text1: 'Checkout Failed',
+            text2: 'An unexpected error occurred.',
+        });
+    }
         } finally {
             setIsLoading(false);
            

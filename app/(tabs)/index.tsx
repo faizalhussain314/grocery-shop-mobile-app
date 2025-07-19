@@ -301,7 +301,7 @@ const ITEMS_PER_PAGE = 6;
         </View>
       </View>
 
-         <BatchTimingCard />
+         {/* <BatchTimingCard /> */}
 
       {isNewlyAddedLoading ? (
   <View style={styles.loaderContainer}>
